@@ -24,7 +24,7 @@ public final class Config {
     public static final String FOLDERS = "folders";
     public static final String ICON_RIM = "icon_rim";
     public static final String DIAG = "diag";
-    public static final String IOS_GRID = "ios_grid";
+    public static final String IOS_GRID = "ios_grid_v2";
     public static final String FOLDER_PANEL = "folder_panel";
     public static final String LIGHT_TILT = "light_tilt";
     // material
@@ -64,7 +64,7 @@ public final class Config {
     public boolean iconRim = true;
     public boolean diag = false;
     /** Re-lay the home grid, widgets and dock on the iOS 27 grid from the Figma kit. */
-    public boolean iosGrid = true;
+    public boolean iosGrid = false;
     /** Glass behind the opened folder panel. */
     public boolean folderPanel = true;
     /** The glass highlight follows the phone tilt (iOS 26/27). */
