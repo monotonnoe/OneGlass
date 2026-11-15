@@ -903,6 +903,7 @@ final class IconBlur {
         private IconOutline outline;
         private boolean measured;
         private boolean iosMeasured;
+        private final com.monotonnoe.oneglass.glass.EdgeGlass edge = new com.monotonnoe.oneglass.glass.EdgeGlass();
         /** A glass icon pack's glyph without the pack's glass, at the size it was tried. */
         private Peel peeled;
         /** A peel is running or has run for the current size: no second one until it is dropped. */
@@ -948,6 +949,15 @@ final class IconBlur {
                 canvas.clipPath(IosLook.iconPath(b));
                 drawIcon(canvas, b, glassed);
                 canvas.restoreToCount(clip);
+                // and the iOS 26/27 glass rim over it: light and a slight lens at the edge
+                android.view.View host = holder.viewRef.get();
+                if (host != null && com.monotonnoe.oneglass.Config.current.iconRim) {
+                    try {
+                        edge.draw(canvas, host, inner, b, 1f);
+                    } catch (Throwable t) {
+                        XLog.e("icon rim", t);
+                    }
+                }
             } else {
                 drawIcon(canvas, b, glassed);
             }

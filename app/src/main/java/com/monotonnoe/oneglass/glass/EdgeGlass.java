@@ -18,7 +18,7 @@ import com.monotonnoe.oneglass.Config;
  * Figma "Default App Icon": a GLASS layer lies over the icon. The icon's own pixels are captured
  * and drawn back through the glass shader with only the refracting rim and the light visible.
  */
-final class EdgeGlass {
+public final class EdgeGlass {
 
     private static final long RECAPTURE_MS = 1000;
 
@@ -31,7 +31,7 @@ final class EdgeGlass {
     private int capturedGen = -1;
 
     /** Call after the icon itself was drawn, in the same canvas, with the icon's bounds. */
-    void draw(Canvas canvas, View host, Drawable icon, Rect bounds, float alpha) {
+    public void draw(Canvas canvas, View host, Drawable icon, Rect bounds, float alpha) {
         if (!canvas.isHardwareAccelerated() || bounds.isEmpty() || !capture(icon, bounds)) {
             return;
         }
@@ -45,7 +45,7 @@ final class EdgeGlass {
         GlassShader.draw(canvas, rect, spec, shader, alpha * cfg.iconRimAlpha / 100f);
     }
 
-    void invalidate() {
+    public void invalidate() {
         capturedGen = -1;
     }
 
