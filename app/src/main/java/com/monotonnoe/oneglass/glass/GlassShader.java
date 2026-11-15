@@ -50,6 +50,8 @@ public final class GlassShader {
             + "uniform float2 sideLine;\n"
             // 1 = only paint the refracting rim (icons: the live icon stays visible inside)
             + "uniform float edgeOnly;\n"
+            // magnification of the whole platter content (Figma GLASS behaves like a thick lens)
+            + "uniform float zoom;\n"
             + "\n"
             + "float lumF(float3 c) { return dot(c, float3(0.3, 0.59, 0.11)); }\n"
             + "\n"
@@ -121,7 +123,7 @@ public final class GlassShader {
             + "    float gr = min(r * 1.5, min(hs.x, hs.y));\n"
             + "    float2 gn = gradRR(p, hs, gr);\n"
             // refraction (Kyant lens): circle-map profile inside the edge band
-            + "    float2 sc = coord;\n"
+            + "    float2 sc = origin + hs + p * zoom;\n"
             + "    float d = 0.0;\n"
             + "    float2 dir = gn;\n"
             + "    if (lens.x > 0.0 && t < lens.x) {\n"
@@ -132,7 +134,7 @@ public final class GlassShader {
             + "        float2 g2 = gn + lens.z * mid;\n"
             + "        float lg = length(g2);\n"
             + "        dir = lg > 0.0001 ? g2 / lg : gn;\n"
-            + "        sc = coord + d * dir;\n"
+            + "        sc = sc + d * dir;\n"
             + "    }\n"
             + "    float3 rgb = float3(0.0);\n"
             + "    float ca = 1.0;\n"
@@ -272,6 +274,7 @@ public final class GlassShader {
             rs.setFloatUniform("hairMode", s.hairMode, s.hairAmount, s.hairSigma);
             rs.setFloatUniform("sideLine", s.sideLine, s.sideOffset);
             rs.setFloatUniform("edgeOnly", s.edgeOnly ? 1f : 0f);
+            rs.setFloatUniform("zoom", s.zoom);
         } catch (Throwable t) {
             failed = true;
             shader = null;

@@ -52,6 +52,7 @@ public final class GlassSpec {
     public static final float LIGHT_ANGLE = 45f;
     public static final float LIGHT_FALLOFF = 1f;
     public static final float CORNER_POW = 2.6f;
+    public static final float ZOOM = 1f;
 
     public float radius;
     public float cornerPow;
@@ -83,6 +84,7 @@ public final class GlassSpec {
     public float sideLine;
     public float sideOffset;
     public boolean edgeOnly;
+    public float zoom;
 
     private static final GlassSpec SHARED = new GlassSpec();
 
@@ -146,6 +148,7 @@ public final class GlassSpec {
         s.refractionHeight = Math.min(REFRACTION_HEIGHT * dp, minSide / 2f);
         s.refractionAmount = REFRACTION_AMOUNT * dp * kRefr;
         s.depth = DEPTH;
+        s.zoom = role == ROLE_ICON ? 1f : ZOOM;
         s.dispersion = DISPERSION * cfg.dispersion / 100f;
         s.saturation = SATURATION;
         s.brightness = BRIGHTNESS;
