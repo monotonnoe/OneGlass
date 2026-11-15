@@ -104,6 +104,7 @@ public final class LauncherHooks {
         hookIconDrawables(cl);
         hookFolderIcons(cl);
         FolderPanels.hookBackgrounds();
+        HomeTweaks.install(cl, XposedHelpers.findClassIfExists(ICON, cl));
 
         Log.i("hooked One UI Home; hotseat class "
                 + (XposedHelpers.findClassIfExists(HOTSEAT, cl) != null ? "found" : "MISSING")

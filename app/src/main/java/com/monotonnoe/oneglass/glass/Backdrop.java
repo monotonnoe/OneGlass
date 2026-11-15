@@ -65,6 +65,27 @@ public final class Backdrop {
         return yOffset;
     }
 
+    private static volatile float zoom = 1f;
+    private static volatile float zoomX;
+    private static volatile float zoomY;
+
+    public static float zoom() {
+        return zoom;
+    }
+
+    /**
+     * One UI zooms the wallpaper (opening apps, the apps screen, recents); the glass follows so
+     * its backdrop stays exactly the wallpaper behind it. (BlurIcons follows the same animator.)
+     */
+    public static void setZoom(float scale, float cx, float cy) {
+        if (!(scale > 0.2f && scale < 5f)) {
+            scale = 1f;
+        }
+        zoom = scale;
+        zoomX = cx;
+        zoomY = cy;
+    }
+
     public static void setOffsets(float x, float y) {
         if (x >= 0f && x <= 1f) {
             xOffset = x;
@@ -330,6 +351,9 @@ public final class Backdrop {
         // small bitmap -> display
         M.setScale(s / k, s / k);
         M.postTranslate(dx, dy);
+        if (zoom != 1f) {
+            M.postScale(zoom, zoom, zoomX, zoomY);
+        }
         // display -> host local
         MatrixUtil.localToScreen(host, L);
         if (L.invert(LINV)) {

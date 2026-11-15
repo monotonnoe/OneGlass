@@ -27,6 +27,8 @@ public final class Config {
     public static final String IOS_GRID = "ios_grid_v2";
     public static final String FOLDER_PANEL = "folder_panel";
     public static final String LIGHT_TILT = "light_tilt";
+    public static final String HIDE_BADGES = "hide_badges";
+    public static final String NO_DIM = "no_dim";
     // material
     public static final String BLUR = "blur";
     public static final String REFRACTION = "refraction";
@@ -69,6 +71,10 @@ public final class Config {
     public boolean folderPanel = true;
     /** The glass highlight follows the phone tilt (iOS 26/27). */
     public boolean lightTilt = true;
+    /** iOS has no work-profile / clone badges on icons (BlurIcons: hide badges). */
+    public boolean hideBadges = true;
+    /** No One UI dimming of icons (BlurIcons: dim effect off). */
+    public boolean noDim = true;
 
     /** iOS style of the glass: Default, Clear or Tinted (Figma Playground). */
     public int style = STYLE_CLEAR;
@@ -116,6 +122,8 @@ public final class Config {
         c.iosGrid = p.getBoolean(IOS_GRID, d.iosGrid);
         c.folderPanel = p.getBoolean(FOLDER_PANEL, d.folderPanel);
         c.lightTilt = p.getBoolean(LIGHT_TILT, d.lightTilt);
+        c.hideBadges = p.getBoolean(HIDE_BADGES, d.hideBadges);
+        c.noDim = p.getBoolean(NO_DIM, d.noDim);
         c.blur = p.getInt(BLUR, d.blur);
         c.refraction = p.getInt(REFRACTION, d.refraction);
         c.refractionHeight = p.getInt(REFRACTION_HEIGHT, d.refractionHeight);
@@ -147,6 +155,8 @@ public final class Config {
                 .putBoolean(IOS_GRID, iosGrid)
                 .putBoolean(FOLDER_PANEL, folderPanel)
                 .putBoolean(LIGHT_TILT, lightTilt)
+                .putBoolean(HIDE_BADGES, hideBadges)
+                .putBoolean(NO_DIM, noDim)
                 .putInt(BLUR, blur)
                 .putInt(REFRACTION, refraction)
                 .putInt(REFRACTION_HEIGHT, refractionHeight)

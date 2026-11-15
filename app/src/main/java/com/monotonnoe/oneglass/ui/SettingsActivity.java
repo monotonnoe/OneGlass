@@ -233,6 +233,18 @@ public final class SettingsActivity extends Activity {
             public void set(Config c, int v) { c.iconRimAlpha = v; }
         });
 
+        section("Как в iOS");
+        toggle("Скрыть значки-бейджи", "Без значков рабочего профиля, клонов и т. п. на иконках",
+                new BoolProp() {
+                    public boolean get(Config c) { return c.hideBadges; }
+                    public void set(Config c, boolean v) { c.hideBadges = v; }
+                });
+        toggle("Без затемнения иконок", "One UI затемняет иконки в некоторых состояниях, iOS — нет",
+                new BoolProp() {
+                    public boolean get(Config c) { return c.noDim; }
+                    public void set(Config c, boolean v) { c.noDim = v; }
+                });
+
         section("Отладка");
         toggle("Диагностика", "Один раз записать дерево view лаунчера в журнал LSPosed (нужен перезапуск лаунчера)",
                 new BoolProp() {

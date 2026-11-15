@@ -80,7 +80,7 @@ public final class GlassTracker {
     }
 
     private static float[] key(View host, Entry e, float[] into) {
-        int n = 9 + 4 + e.glass.size() * 5;
+        int n = 9 + 5 + e.glass.size() * 5;
         float[] k = into.length == n ? into : new float[n];
         MatrixUtil.localToScreen(host, M);
         M.getValues(V);
@@ -89,7 +89,8 @@ public final class GlassTracker {
         k[10] = Backdrop.xOffset();
         k[11] = Backdrop.yOffset();
         k[12] = Config.current.generation;
-        int at = 13;
+        k[13] = Backdrop.zoom();
+        int at = 14;
         for (GlassDrawable d : e.glass) {
             at = d.key(host, k, at);
         }
