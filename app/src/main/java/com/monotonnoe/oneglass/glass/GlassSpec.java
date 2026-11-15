@@ -27,6 +27,8 @@ public final class GlassSpec {
     public static final int ROLE_ICON = 5;
     /** Opened folder panel: tile material, iOS folder corner radius. */
     public static final int ROLE_FOLDER_PANEL = 6;
+    /** Glass tile under a Clear / Tinted app icon (Figma "Dark/Light-Clear App Icon"). */
+    public static final int ROLE_ICON_TILE = 7;
     public static final float FOLDER_PANEL_RADIUS = 38f;
 
     /** Figma: app icon 60pt with corner radius 15.5pt. */
@@ -129,7 +131,8 @@ public final class GlassSpec {
     public static GlassSpec resolve(int role, Config cfg, float dp, boolean dark, RectF rect) {
         GlassSpec s = SHARED;
         float minSide = Math.min(rect.width(), rect.height());
-        boolean tile = role == ROLE_WIDGET || role == ROLE_FOLDER || role == ROLE_FOLDER_PANEL;
+        boolean tile = role == ROLE_WIDGET || role == ROLE_FOLDER || role == ROLE_FOLDER_PANEL
+                || role == ROLE_ICON_TILE;
 
         switch (role) {
             case ROLE_PILL:
@@ -143,6 +146,7 @@ public final class GlassSpec {
                 break;
             case ROLE_FOLDER:
             case ROLE_ICON:
+            case ROLE_ICON_TILE:
                 s.radius = rect.width() * ICON_RADIUS_RATIO;
                 break;
             case ROLE_DOCK:
@@ -169,7 +173,7 @@ public final class GlassSpec {
         s.lightWidth = LIGHT_WIDTH * dp;
         s.lightSoftness = LIGHT_SOFTNESS * dp;
         s.lightFalloff = LIGHT_FALLOFF;
-        double a = Math.toRadians(LIGHT_ANGLE);
+        double a = Math.toRadians(LIGHT_ANGLE + LightSensor.offset());
         s.lightX = (float) Math.cos(a);
         s.lightY = (float) Math.sin(a);
 

@@ -52,7 +52,8 @@ public final class IconRimDrawable extends Drawable {
     public void draw(Canvas canvas) {
         View v = host.get();
         Config cfg = Config.current;
-        if (v == null || !cfg.iconRim) {
+        if (v == null || !cfg.iconRim || cfg.style != Config.STYLE_DEFAULT) {
+            // Clear / Tinted icons get their glass from the tile under them
             return;
         }
         if (!IconGeometry.find(v, rect)) {

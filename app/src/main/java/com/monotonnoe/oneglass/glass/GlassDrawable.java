@@ -53,6 +53,8 @@ public final class GlassDrawable extends Drawable {
                 return c.folders;
             case GlassSpec.ROLE_FOLDER_PANEL:
                 return c.folderPanel;
+            case GlassSpec.ROLE_ICON_TILE:
+                return c.iconRim && c.style != Config.STYLE_DEFAULT;
             default:
                 return false;
         }

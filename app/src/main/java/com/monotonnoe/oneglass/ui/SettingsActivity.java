@@ -138,7 +138,7 @@ public final class SettingsActivity extends Activity {
                     public boolean get(Config c) { return c.folderPanel; }
                     public void set(Config c, boolean v) { c.folderPanel = v; }
                 });
-        toggle("Стекло на иконках", "Слой GLASS из макета поверх иконок: преломляющая кромка и освещение",
+        toggle("Стекло на иконках", "Default: слой GLASS поверх иконки. Clear/Tinted: стеклянная плитка и символ иконки (меню приложений не меняется)",
                 new BoolProp() {
                     public boolean get(Config c) { return c.iconRim; }
                     public void set(Config c, boolean v) { c.iconRim = v; }
@@ -158,6 +158,11 @@ public final class SettingsActivity extends Activity {
         colors();
 
         section("Материал (100% = как в макете)");
+        toggle("Свет от наклона", "Блик стекла поворачивается вслед за наклоном телефона, как в iOS 26/27",
+                new BoolProp() {
+                    public boolean get(Config c) { return c.lightTilt; }
+                    public void set(Config c, boolean v) { c.lightTilt = v; }
+                });
         slider("Матовость (frost)", 0, 400, "%", new IntProp() {
             public int get(Config c) { return c.blur; }
             public void set(Config c, int v) { c.blur = v; }

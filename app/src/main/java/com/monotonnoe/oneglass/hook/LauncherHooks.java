@@ -25,6 +25,7 @@ import com.monotonnoe.oneglass.glass.ContinuousPath;
 import com.monotonnoe.oneglass.glass.GlassDrawable;
 import com.monotonnoe.oneglass.glass.GlassSpec;
 import com.monotonnoe.oneglass.glass.GlassTracker;
+import com.monotonnoe.oneglass.glass.GlyphIconDrawable;
 import com.monotonnoe.oneglass.glass.IconRimDrawable;
 import com.monotonnoe.oneglass.glass.Log;
 import com.monotonnoe.oneglass.glass.Units;
@@ -98,9 +99,59 @@ public final class LauncherHooks {
                     }
                 });
 
+        hookIconDrawables(cl);
+        GlyphIconDrawable.place = LauncherHooks::inAppsScreen;
+
         Log.i("hooked One UI Home; hotseat class "
                 + (XposedHelpers.findClassIfExists(HOTSEAT, cl) != null ? "found" : "MISSING")
                 + ", icon class " + (XposedHelpers.findClassIfExists(ICON, cl) != null ? "found" : "MISSING"));
+    }
+
+    /**
+     * Home screen icons go through {@link GlyphIconDrawable} so the iOS 27 Clear / Tinted symbol
+     * can be drawn (BlurIcons hooks the same setter). The apps screen keeps the original icon.
+     */
+    private static void hookIconDrawables(ClassLoader cl) {
+        Class<?> icon = XposedHelpers.findClassIfExists(ICON, cl);
+        if (icon == null) {
+            Log.i("no " + ICON + ": clear / tinted icons unavailable");
+            return;
+        }
+        final Class<?> exact = icon;
+        java.util.Set<de.robv.android.xposed.XC_MethodHook.Unhook> h =
+                de.robv.android.xposed.XposedBridge.hookAllMethods(icon, "setCompoundDrawable", new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        if (param.thisObject.getClass() == exact) {
+                            wrapArgs(param.args);
+                        }
+                    }
+                });
+        int n = h == null ? 0 : h.size();
+        if (n == 0) {
+            for (String m : new String[]{"setCompoundDrawables", "setCompoundDrawablesRelative"}) {
+                h = de.robv.android.xposed.XposedBridge.hookAllMethods(android.widget.TextView.class, m, new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        if (param.thisObject.getClass() == exact && param.args.length == 4) {
+                            wrapArgs(param.args);
+                        }
+                    }
+                });
+                n += h == null ? 0 : h.size();
+            }
+        }
+        Log.i("icon drawable hooks: " + n);
+    }
+
+    private static void wrapArgs(Object[] args) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i] instanceof Drawable && !(args[i] instanceof GlyphIconDrawable)
+                    && !(args[i] instanceof android.graphics.drawable.ColorDrawable)) {
+                args[i] = new GlyphIconDrawable((Drawable) args[i]);
+                return;
+            }
+        }
     }
 
     private static void loadConfig() {
@@ -123,6 +174,7 @@ public final class LauncherHooks {
 
     private static void start(Context context) {
         Backdrop.ensure(context);
+        com.monotonnoe.oneglass.glass.LightSensor.start(context);
         Context app = context.getApplicationContext() != null ? context.getApplicationContext() : context;
         try {
             app.registerReceiver(new BroadcastReceiver() {
@@ -150,7 +202,14 @@ public final class LauncherHooks {
             MAIN.postDelayed(() -> Diagnostics.dump(root), 4000);
         }
         int kind = kindOf(v.getClass());
-        if (kind == K_NONE || !DONE.add(v)) {
+        if (kind == K_NONE) {
+            return;
+        }
+        // The One UI apps screen stays stock: nothing inside it is touched.
+        if (kind != K_PAGE && kind != K_HOTSEAT && inAppsScreen(v)) {
+            return;
+        }
+        if (!DONE.add(v)) {
             return;
         }
         switch (kind) {
@@ -177,11 +236,27 @@ public final class LauncherHooks {
                 applyRim(v);
                 break;
             case K_ICON:
+                applyBackground(v, new GlassDrawable(GlassSpec.ROLE_ICON_TILE, Shapes.ICON));
                 applyRim(v);
                 break;
             default:
                 break;
         }
+    }
+
+    /** True for views on the One UI apps screen (app drawer). */
+    static boolean inAppsScreen(View v) {
+        ViewParent p = v.getParent();
+        int guard = 0;
+        while (p instanceof View && guard++ < 40) {
+            String n = p.getClass().getName();
+            if (n.contains(".applist.") || n.contains("Applist") || n.contains("AppsList")
+                    || n.contains("AppScreen") || n.contains(".appscreen.")) {
+                return true;
+            }
+            p = p.getParent();
+        }
+        return false;
     }
 
     private static int kindOf(Class<?> cls) {
