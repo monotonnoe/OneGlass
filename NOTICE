@@ -1,0 +1,16 @@
+OneGlass
+
+This product includes code adapted from AndroidLiquidGlass (backdrop library)
+  https://github.com/Kyant0/AndroidLiquidGlass
+  Copyright 2025 Kyant
+  Licensed under the Apache License, Version 2.0
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Adapted parts (app/src/main/java/com/monotonnoe/oneglass/glass/GlassShader.java):
+  - rounded-rectangle SDF gradient (gradSdRoundedRect) used for smooth normals,
+  - lens refraction with circle-map profile and depth effect,
+  - 7-tap chromatic dispersion,
+  - vibrancy colour controls (saturation matrix),
+  - directional highlight (|dot(normal, light)|^falloff, Plus blend).
+The code was translated from Kotlin/Compose to Java/AGSL for use inside a
+View-based launcher and modified (Figma layer stack, continuous corners).

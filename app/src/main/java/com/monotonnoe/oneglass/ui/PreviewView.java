@@ -94,12 +94,14 @@ public final class PreviewView extends View {
         if (wallpaper == null || blurFor == config.blur) {
             return;
         }
-        float blurPx = config.blur * previewDp();
-        float k = config.blur <= 0 ? 0.5f : Math.min(0.25f, 8f / Math.max(1f, blurPx));
+        float sigma = GlassSpec.frost(config) * previewDp();
+        float k = Math.max(0.2f, Math.min(0.5f, 3f / Math.max(0.001f, sigma)));
         int w = Math.max(16, Math.round(wallpaper.getWidth() * k));
         int h = Math.max(16, Math.round(wallpaper.getHeight() * k));
         Bitmap small = Bitmap.createScaledBitmap(wallpaper, w, h, true);
-        blurred = BoxBlur.blur(small, Math.min(24, Math.round(blurPx * k)));
+        float sk = sigma * k;
+        int r = Math.round((float) (Math.sqrt(4f * sk * sk + 1f) - 1f) / 2f);
+        blurred = BoxBlur.blur(small, Math.min(24, r));
         blurShader = new BitmapShader(blurred, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
         blurShader.setFilterMode(BitmapShader.FILTER_MODE_LINEAR);
         m.setScale(getWidth() / (float) w, getHeight() / (float) h);
@@ -182,7 +184,8 @@ public final class PreviewView extends View {
     }
 
     private void glass(Canvas canvas, int role, RectF rect, boolean night) {
-        GlassSpec spec = GlassSpec.resolve(role, config, previewDp(), night, rect);
+        boolean dark = config.tintMode == Config.TINT_DARK || (config.tintMode == Config.TINT_AUTO && night);
+        GlassSpec spec = GlassSpec.resolve(role, config, previewDp(), dark, rect);
         GlassShader.draw(canvas, rect, spec, blurShader, 1f);
     }
 

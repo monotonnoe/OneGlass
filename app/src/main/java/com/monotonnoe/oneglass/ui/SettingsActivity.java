@@ -103,7 +103,7 @@ public final class SettingsActivity extends Activity {
         list.addView(preview, plp);
 
         section("Где стекло");
-        toggle("Док", "Стеклянная подложка под иконками дока (Figma: 368×103, радиус 38)",
+        toggle("Док", "Стеклянная подложка под иконками дока (Figma: 357×99, радиус 35)",
                 new BoolProp() {
                     public boolean get(Config c) { return c.dock; }
                     public void set(Config c, boolean v) { c.dock = v; }
@@ -128,49 +128,45 @@ public final class SettingsActivity extends Activity {
                     public boolean get(Config c) { return c.folders; }
                     public void set(Config c, boolean v) { c.folders = v; }
                 });
-        toggle("Блик на иконках", "Световая кромка по контуру иконок, как в iOS 26/27",
+        toggle("Стекло на иконках", "Слой GLASS из макета поверх иконок: преломляющая кромка и освещение",
                 new BoolProp() {
                     public boolean get(Config c) { return c.iconRim; }
                     public void set(Config c, boolean v) { c.iconRim = v; }
                 });
 
-        section("Материал");
-        slider("Размытие (frost)", 0, 40, "dp", new IntProp() {
+        section("Стиль iOS 27 (Figma Playground)");
+        choice("Вид", new String[]{"Default", "Clear", "Tinted"},
+                new int[]{Config.STYLE_DEFAULT, Config.STYLE_CLEAR, Config.STYLE_TINTED}, new IntProp() {
+                    public int get(Config c) { return c.style; }
+                    public void set(Config c, int v) { c.style = v; }
+                });
+        choice("Оформление", new String[]{"Как в системе", "Светлое", "Тёмное"},
+                new int[]{Config.TINT_AUTO, Config.TINT_LIGHT, Config.TINT_DARK}, new IntProp() {
+                    public int get(Config c) { return c.tintMode; }
+                    public void set(Config c, int v) { c.tintMode = v; }
+                });
+        colors();
+
+        section("Материал (100% = как в макете)");
+        slider("Матовость (frost)", 0, 400, "%", new IntProp() {
             public int get(Config c) { return c.blur; }
             public void set(Config c, int v) { c.blur = v; }
         });
-        slider("Сила преломления", 0, 40, "dp", new IntProp() {
+        slider("Преломление", 0, 300, "%", new IntProp() {
             public int get(Config c) { return c.refraction; }
             public void set(Config c, int v) { c.refraction = v; }
         });
-        slider("Ширина линзы у края", 0, 40, "dp", new IntProp() {
-            public int get(Config c) { return c.refractionHeight; }
-            public void set(Config c, int v) { c.refractionHeight = v; }
-        });
-        slider("Дисперсия (радуга по краю)", 0, 100, "%", new IntProp() {
+        slider("Дисперсия", 0, 300, "%", new IntProp() {
             public int get(Config c) { return c.dispersion; }
             public void set(Config c, int v) { c.dispersion = v; }
         });
-        slider("Насыщенность", 50, 250, "%", new IntProp() {
-            public int get(Config c) { return c.saturation; }
-            public void set(Config c, int v) { c.saturation = v; }
-        });
-        slider("Слой яркости (Figma #999 33%)", 0, 80, "%", new IntProp() {
-            public int get(Config c) { return c.lumaMix; }
-            public void set(Config c, int v) { c.lumaMix = v; }
-        });
-        slider("Блики и кромка", 0, 200, "%", new IntProp() {
+        slider("Освещение стекла", 0, 300, "%", new IntProp() {
             public int get(Config c) { return c.rim; }
             public void set(Config c, int v) { c.rim = v; }
         });
-        tintMode();
-        slider("Тонировка", 0, 60, "%", new IntProp() {
-            public int get(Config c) { return c.tintAlpha; }
-            public void set(Config c, int v) { c.tintAlpha = v; }
-        });
 
         section("Геометрия");
-        slider("Радиус дока", 0, 60, "dp", new IntProp() {
+        slider("Радиус дока (макет: 35)", 0, 60, "dp", new IntProp() {
             public int get(Config c) { return c.dockRadius; }
             public void set(Config c, int v) { c.dockRadius = v; }
         });
@@ -182,7 +178,7 @@ public final class SettingsActivity extends Activity {
             public int get(Config c) { return c.dockPadV; }
             public void set(Config c, int v) { c.dockPadV = v; }
         });
-        slider("Радиус виджетов", 0, 48, "dp", new IntProp() {
+        slider("Радиус виджетов (макет: 27)", 0, 48, "dp", new IntProp() {
             public int get(Config c) { return c.widgetRadius; }
             public void set(Config c, int v) { c.widgetRadius = v; }
         });
@@ -190,7 +186,7 @@ public final class SettingsActivity extends Activity {
             public int get(Config c) { return c.pillWidth; }
             public void set(Config c, int v) { c.pillWidth = v; }
         });
-        slider("Яркость блика иконок", 0, 100, "%", new IntProp() {
+        slider("Сила стекла на иконках", 0, 100, "%", new IntProp() {
             public int get(Config c) { return c.iconRimAlpha; }
             public void set(Config c, int v) { c.iconRimAlpha = v; }
         });
@@ -292,33 +288,60 @@ public final class SettingsActivity extends Activity {
         list.addView(bar);
     }
 
-    private void tintMode() {
+    private void choice(String name, String[] names, int[] values, IntProp prop) {
         TextView t = new TextView(this);
-        t.setText("Тон стекла");
+        t.setText(name);
         t.setTextSize(15);
         t.setPadding(0, dp(10), 0, 0);
         list.addView(t);
         RadioGroup g = new RadioGroup(this);
         g.setOrientation(RadioGroup.HORIZONTAL);
-        String[] names = {"Как в системе", "Светлое", "Тёмное"};
-        int[] values = {Config.TINT_AUTO, Config.TINT_LIGHT, Config.TINT_DARK};
         for (int i = 0; i < names.length; i++) {
             RadioButton b = new RadioButton(this);
             b.setText(names[i]);
             b.setId(View.generateViewId());
             final int value = values[i];
             g.addView(b);
-            if (config.tintMode == value) {
+            if (prop.get(config) == value) {
                 b.setChecked(true);
             }
             b.setOnCheckedChangeListener((btn, on) -> {
                 if (on) {
-                    config.tintMode = value;
+                    prop.set(config, value);
                     changed();
                 }
             });
         }
         list.addView(g);
+    }
+
+    /** Tint colours for the Tinted style (first one is the Figma kit's #24A8F1). */
+    private void colors() {
+        TextView t = new TextView(this);
+        t.setText("Цвет тинта (Tinted)");
+        t.setTextSize(15);
+        t.setPadding(0, dp(10), 0, dp(6));
+        list.addView(t);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        int[] colors = {0xFF24A8F1, 0xFF30D158, 0xFFFFD60A, 0xFFFF9F0A, 0xFFFF375F, 0xFFBF5AF2, 0xFF8E8E93};
+        for (int col : colors) {
+            View sw = new View(this);
+            android.graphics.drawable.GradientDrawable d = new android.graphics.drawable.GradientDrawable();
+            d.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            d.setColor(col);
+            d.setStroke(dp(config.tintColor == col ? 3 : 1), config.tintColor == col ? 0xFFFFFFFF : 0x40000000);
+            sw.setBackground(d);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(34), dp(34));
+            lp.rightMargin = dp(10);
+            sw.setOnClickListener(v -> {
+                config.tintColor = col;
+                changed();
+                recreate();
+            });
+            row.addView(sw, lp);
+        }
+        list.addView(row);
     }
 
     private void changed() {

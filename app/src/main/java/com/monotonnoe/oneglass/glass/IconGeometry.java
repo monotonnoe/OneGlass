@@ -25,6 +25,9 @@ public final class IconGeometry {
     private static final Map<Class<?>, List<Field>> FIELDS = new HashMap<>();
     private static final Set<Class<?>> LOGGED = new HashSet<>();
 
+    /** The icon drawable found by the last successful {@link #find} (null for the heuristic). */
+    public static Drawable lastDrawable;
+
     private IconGeometry() {
     }
 
@@ -36,6 +39,7 @@ public final class IconGeometry {
         }
         String how;
         Drawable best = null;
+        lastDrawable = null;
         if (v instanceof TextView) {
             Drawable top = ((TextView) v).getCompoundDrawables()[1];
             if (top != null && !top.getBounds().isEmpty()) {
@@ -46,6 +50,7 @@ public final class IconGeometry {
             best = largestSquareField(v, w);
         }
         if (best != null) {
+            lastDrawable = best;
             Rect b = best.getBounds();
             out.set(b);
             if (b.left == 0 && b.top == 0 && b.width() < w - 2) {

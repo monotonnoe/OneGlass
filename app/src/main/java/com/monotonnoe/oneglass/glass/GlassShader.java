@@ -8,18 +8,16 @@ import android.graphics.RuntimeShader;
 import android.graphics.Shader;
 
 /**
- * The Liquid Glass material as an AGSL shader.
+ * Liquid Glass as one AGSL shader.
  *
- * The backdrop (already frosted) comes in as {@code content}, sampled in the same local
- * coordinates the shader is drawn in. Per pixel:
- *  1. continuous rounded-rect SDF of the platter (p-norm corners),
- *  2. refraction: inside an edge band the sample point is pushed outward along the SDF
- *     normal with a circular lens profile, so the rim bends the wallpaper like thick glass,
- *  3. chromatic dispersion: R / G / B sampled at slightly different bends,
- *  4. vibrancy (saturation boost) and the Figma luminosity layer (#999999 @ 33%),
- *  5. optional milky / smoky tint,
- *  6. light: 1.25pt hairline + soft inner glow, strongest where the edge faces the light,
- *  7. 0.5pt darker outline just outside the shape.
+ * Optics (refraction with depth effect, 7-tap chromatic dispersion, vibrancy, directional
+ * highlight) follow Kyant0/AndroidLiquidGlass (Apache-2.0, see NOTICE). On top of that the
+ * shader reproduces the exact layer stack of the iOS 27 Figma kit ("iOS 27 Widgets", Playground):
+ * up to three fill layers with Figma blend modes (Normal, Exclusion, Luminosity, Linear Burn,
+ * Color, Linear Dodge), the Linear Dodge corner glows (inner shadows 0/±40, spread -40, blur 10),
+ * the 1.25pt / 0.5pt hairlines (Linear Dodge or Color) and the ±0.5pt Linear Burn side lines.
+ *
+ * Coordinates are local canvas pixels; {@code content} is the frosted backdrop in the same space.
  */
 public final class GlassShader {
 
@@ -29,85 +27,176 @@ public final class GlassShader {
             + "uniform float2 size;\n"
             + "uniform float radius;\n"
             + "uniform float cornerPow;\n"
-            + "uniform float refrHeight;\n"
-            + "uniform float refrAmount;\n"
-            + "uniform float dispersion;\n"
-            + "uniform float saturation;\n"
-            + "uniform float2 luma;\n"
-            + "uniform float4 tint;\n"
-            + "uniform float4 rim;\n"
+            // x refraction height, y refraction amount (signed), z depth effect, w dispersion
+            + "uniform float4 lens;\n"
+            // x saturation, y brightness
+            + "uniform float2 tone;\n"
+            // fill layers: rgb + unused, (alpha, mode)
+            + "uniform float4 l1c;\n"
+            + "uniform float2 l1;\n"
+            + "uniform float4 l2c;\n"
+            + "uniform float2 l2;\n"
+            + "uniform float4 l3c;\n"
+            + "uniform float2 l3;\n"
+            // highlight: x intensity, y width, z softness, w falloff
+            + "uniform float4 light;\n"
             + "uniform float2 lightDir;\n"
-            + "uniform float outline;\n"
+            // corner glows: x amount, y offset, z sigma
+            + "uniform float3 glow;\n"
+            // hairlines: rgb colour, w offset; hairMode: x mode (0 off, 1 dodge, 2 color), y amount, z sigma
+            + "uniform float4 hairC;\n"
+            + "uniform float3 hairMode;\n"
+            // outside side lines: x darkening, y offset
+            + "uniform float2 sideLine;\n"
+            // 1 = only paint the refracting rim (icons: the live icon stays visible inside)
+            + "uniform float edgeOnly;\n"
             + "\n"
-            + "float lum(float3 c) {\n"
-            + "    return dot(c, float3(0.2126, 0.7152, 0.0722));\n"
+            + "float lumF(float3 c) { return dot(c, float3(0.3, 0.59, 0.11)); }\n"
+            + "\n"
+            + "float3 clipColor(float3 c) {\n"
+            + "    float l = lumF(c);\n"
+            + "    float n = min(min(c.r, c.g), c.b);\n"
+            + "    float x = max(max(c.r, c.g), c.b);\n"
+            + "    if (n < 0.0) { c = l + (c - l) * l / max(l - n, 0.00001); }\n"
+            + "    if (x > 1.0) { c = l + (c - l) * (1.0 - l) / max(x - l, 0.00001); }\n"
+            + "    return c;\n"
             + "}\n"
             + "\n"
-            + "float sdShape(float2 p) {\n"
-            + "    float2 hs = size * 0.5;\n"
-            + "    float r = min(radius, min(hs.x, hs.y));\n"
+            + "float3 setLum(float3 c, float l) { return clipColor(c + (l - lumF(c))); }\n"
+            + "\n"
+            + "float3 blendLayer(float3 b, float3 s, float a, float mode) {\n"
+            + "    if (a <= 0.0 || mode < 0.5) { return b; }\n"
+            + "    float3 r = s;\n"
+            + "    if (mode < 1.5) { r = s; }\n"
+            + "    else if (mode < 2.5) { r = b + s - 2.0 * b * s; }\n"
+            + "    else if (mode < 3.5) { r = setLum(b, lumF(s)); }\n"
+            + "    else if (mode < 4.5) { r = clamp(b + s - 1.0, 0.0, 1.0); }\n"
+            + "    else if (mode < 5.5) { r = setLum(s, lumF(b)); }\n"
+            + "    else { r = min(b + s, float3(1.0)); }\n"
+            + "    return mix(b, r, a);\n"
+            + "}\n"
+            + "\n"
+            + "float sdRR(float2 p, float2 hs, float r) {\n"
+            + "    r = max(min(r, min(hs.x, hs.y)), 0.0);\n"
             + "    float2 q = abs(p) - (hs - float2(r, r));\n"
             + "    float2 m = max(q, float2(0.0, 0.0));\n"
-            + "    float outside = 0.0;\n"
+            + "    float o = 0.0;\n"
             + "    if (m.x > 0.0 || m.y > 0.0) {\n"
-            + "        outside = pow(pow(m.x, cornerPow) + pow(m.y, cornerPow), 1.0 / cornerPow);\n"
+            + "        o = pow(pow(m.x, cornerPow) + pow(m.y, cornerPow), 1.0 / cornerPow);\n"
             + "    }\n"
-            + "    return outside + min(max(q.x, q.y), 0.0) - r;\n"
+            + "    return o + min(max(q.x, q.y), 0.0) - r;\n"
             + "}\n"
             + "\n"
-            + "float2 normalAt(float2 p) {\n"
-            + "    float e = 0.75;\n"
-            + "    float dx = sdShape(p + float2(e, 0.0)) - sdShape(p - float2(e, 0.0));\n"
-            + "    float dy = sdShape(p + float2(0.0, e)) - sdShape(p - float2(0.0, e));\n"
-            + "    float2 g = float2(dx, dy);\n"
-            + "    float l = length(g);\n"
-            + "    if (l < 0.0001) {\n"
-            + "        return float2(0.0, 0.0);\n"
+            // Kyant: analytic gradient of the rounded rect SDF with an enlarged radius (smooth normals)
+            + "float2 gradRR(float2 p, float2 hs, float r) {\n"
+            + "    float2 q = abs(p) - (hs - float2(r, r));\n"
+            + "    float2 s = float2(p.x >= 0.0 ? 1.0 : -1.0, p.y >= 0.0 ? 1.0 : -1.0);\n"
+            + "    if (q.x >= 0.0 || q.y >= 0.0) {\n"
+            + "        float2 m = max(q, float2(0.0, 0.0));\n"
+            + "        float l = length(m);\n"
+            + "        if (l < 0.0001) { return s * 0.70710678; }\n"
+            + "        return s * (m / l);\n"
             + "    }\n"
-            + "    return g / l;\n"
+            + "    float gx = q.x > q.y ? 1.0 : 0.0;\n"
+            + "    return s * float2(gx, 1.0 - gx);\n"
+            + "}\n"
+            + "\n"
+            // smooth coverage of a gaussian-blurred edge
+            + "float phi(float x) { return 1.0 / (1.0 + exp(-1.702 * x)); }\n"
+            + "\n"
+            + "float4 sampleC(float2 c) {\n"
+            + "    float4 v = float4(content.eval(c));\n"
+            + "    if (v.a <= 0.0001) { return float4(0.0); }\n"
+            + "    return float4(v.rgb / v.a, v.a);\n"
             + "}\n"
             + "\n"
             + "half4 main(float2 coord) {\n"
-            + "    float2 p = coord - origin - size * 0.5;\n"
-            + "    float sd = sdShape(p);\n"
-            + "    float o = outline * clamp(1.0 - abs(sd - 0.4) / 0.9, 0.0, 1.0);\n"
-            + "    if (sd > 0.5) {\n"
-            + "        return half4(0.0, 0.0, 0.0, o);\n"
-            + "    }\n"
+            + "    float2 hs = size * 0.5;\n"
+            + "    float2 p = coord - origin - hs;\n"
+            + "    float r = min(radius, min(hs.x, hs.y));\n"
+            + "    float sd = sdRR(p, hs, r);\n"
+            + "    if (sd > 2.0) { return half4(0.0); }\n"
             + "    float inside = clamp(0.5 - sd, 0.0, 1.0);\n"
             + "    float t = max(-sd, 0.0);\n"
-            + "    float2 n = normalAt(p);\n"
-            + "    float bend = 0.0;\n"
-            + "    if (refrHeight > 0.0 && t < refrHeight) {\n"
-            + "        float x = 1.0 - t / refrHeight;\n"
-            + "        bend = (1.0 - sqrt(max(1.0 - x * x, 0.0))) * refrAmount;\n"
+            + "    float gr = min(r * 1.5, min(hs.x, hs.y));\n"
+            + "    float2 gn = gradRR(p, hs, gr);\n"
+            // refraction (Kyant lens): circle-map profile inside the edge band
+            + "    float2 sc = coord;\n"
+            + "    float d = 0.0;\n"
+            + "    float2 dir = gn;\n"
+            + "    if (lens.x > 0.0 && t < lens.x) {\n"
+            + "        float x = 1.0 - t / lens.x;\n"
+            + "        d = (1.0 - sqrt(max(1.0 - x * x, 0.0))) * lens.y;\n"
+            + "        float lp = length(p);\n"
+            + "        float2 mid = lp > 0.0001 ? p / lp : float2(0.0, 0.0);\n"
+            + "        float2 g2 = gn + lens.z * mid;\n"
+            + "        float lg = length(g2);\n"
+            + "        dir = lg > 0.0001 ? g2 / lg : gn;\n"
+            + "        sc = coord + d * dir;\n"
             + "    }\n"
-            + "    float4 c;\n"
-            + "    if (dispersion > 0.0 && bend > 0.0) {\n"
-            + "        float4 cr = float4(content.eval(coord + n * (bend * (1.0 + dispersion))));\n"
-            + "        float4 cg = float4(content.eval(coord + n * bend));\n"
-            + "        float4 cb = float4(content.eval(coord + n * (bend * (1.0 - dispersion))));\n"
-            + "        c = float4(cr.r, cg.g, cb.b, cg.a);\n"
+            + "    float3 rgb = float3(0.0);\n"
+            + "    float ca = 1.0;\n"
+            + "    if (lens.w > 0.0 && d != 0.0) {\n"
+            + "        float k = lens.w * (p.x * p.y) / max(hs.x * hs.y, 1.0);\n"
+            + "        float2 dc = d * dir * k;\n"
+            + "        float4 red = sampleC(sc + dc);\n"
+            + "        float4 ora = sampleC(sc + dc * 0.6666667);\n"
+            + "        float4 yel = sampleC(sc + dc * 0.3333333);\n"
+            + "        float4 gre = sampleC(sc);\n"
+            + "        float4 cya = sampleC(sc - dc * 0.3333333);\n"
+            + "        float4 blu = sampleC(sc - dc * 0.6666667);\n"
+            + "        float4 pur = sampleC(sc - dc);\n"
+            + "        rgb.r = red.r / 3.5 + ora.r / 3.5 + yel.r / 3.5 + pur.r / 7.0;\n"
+            + "        rgb.g = ora.g / 7.0 + yel.g / 3.5 + gre.g / 3.5 + cya.g / 3.5;\n"
+            + "        rgb.b = cya.b / 3.0 + blu.b / 3.0 + pur.b / 3.0;\n"
+            + "        ca = gre.a;\n"
             + "    } else {\n"
-            + "        c = float4(content.eval(coord + n * bend));\n"
+            + "        float4 c0 = sampleC(sc);\n"
+            + "        rgb = c0.rgb;\n"
+            + "        ca = c0.a;\n"
             + "    }\n"
-            + "    float a = c.a;\n"
-            + "    float3 rgb = float3(0.0, 0.0, 0.0);\n"
-            + "    if (a > 0.0001) {\n"
-            + "        rgb = c.rgb / a;\n"
+            // vibrancy (Kyant colorControls)
+            + "    float lv = dot(rgb, float3(0.213, 0.715, 0.072));\n"
+            + "    rgb = clamp(lv + (rgb - lv) * tone.x + tone.y, 0.0, 1.0);\n"
+            // Figma fill stack
+            + "    rgb = blendLayer(rgb, l1c.rgb, l1.x, l1.y);\n"
+            + "    rgb = blendLayer(rgb, l2c.rgb, l2.x, l2.y);\n"
+            + "    rgb = blendLayer(rgb, l3c.rgb, l3.x, l3.y);\n"
+            // Kyant highlight: |dot(n, light)|^falloff on a soft band inside the edge (Plus)
+            + "    float hi = pow(abs(dot(gn, lightDir)), light.w);\n"
+            + "    float band = phi((light.y - t) / max(light.z, 0.15));\n"
+            + "    rgb = min(rgb + light.x * hi * band, float3(1.0));\n"
+            // Figma corner glows: inner shadows offset 0/-G and 0/+G, spread -G, Linear Dodge
+            + "    if (glow.x > 0.0) {\n"
+            + "        float2 hh = hs + float2(glow.y, glow.y);\n"
+            + "        float rr = r + glow.y;\n"
+            + "        float g = phi(sdRR(p + float2(0.0, glow.y), hh, rr) / glow.z)\n"
+            + "                + phi(sdRR(p - float2(0.0, glow.y), hh, rr) / glow.z);\n"
+            + "        rgb = min(rgb + glow.x * g, float3(1.0));\n"
             + "    }\n"
-            + "    float l0 = lum(rgb);\n"
-            + "    rgb = clamp(mix(float3(l0, l0, l0), rgb, saturation), 0.0, 1.0);\n"
-            + "    rgb = clamp(rgb + (luma.x - lum(rgb)) * luma.y, 0.0, 1.0);\n"
-            + "    rgb = mix(rgb, tint.rgb, tint.a);\n"
-            + "    float facing = abs(dot(n, lightDir));\n"
-            + "    float hair = clamp(1.0 - abs(t - rim.x * 0.5) / max(rim.x, 0.5), 0.0, 1.0);\n"
-            + "    float glow = exp(-t / max(rim.z, 0.001));\n"
-            + "    float add = rim.y * hair * (0.35 + 0.65 * facing) + rim.w * glow * (0.25 + 0.75 * facing);\n"
-            + "    rgb = rgb + (1.0 - rgb) * clamp(add, 0.0, 1.0);\n"
-            + "    float alpha = inside * a;\n"
-            + "    float outA = alpha + (1.0 - alpha) * o;\n"
-            + "    return half4(rgb * alpha, outA);\n"
+            // Figma hairlines: inner shadows offset 0/±h, Linear Dodge or Color
+            + "    if (hairMode.x > 0.5) {\n"
+            + "        float h = phi(sdRR(p + float2(0.0, hairC.w), hs, r) / hairMode.z)\n"
+            + "                + phi(sdRR(p - float2(0.0, hairC.w), hs, r) / hairMode.z);\n"
+            + "        h = clamp(h, 0.0, 1.0) * hairMode.y;\n"
+            + "        if (hairMode.x < 1.5) {\n"
+            + "            rgb = min(rgb + hairC.rgb * h, float3(1.0));\n"
+            + "        } else {\n"
+            + "            rgb = mix(rgb, setLum(hairC.rgb, lumF(rgb)), h);\n"
+            + "        }\n"
+            + "    }\n"
+            + "    float a = inside * ca;\n"
+            + "    if (edgeOnly > 0.5) {\n"
+            + "        float bandW = max(lens.x, light.y + 2.0 * light.z);\n"
+            + "        a *= clamp(bandW + 1.0 - t, 0.0, 1.0);\n"
+            + "    }\n"
+            + "    float o = 0.0;\n"
+            + "    if (sd > -1.0) {\n"
+            + "        float a1 = 1.0 - phi(sdRR(p + float2(sideLine.y, 0.0), hs, r) / 0.35);\n"
+            + "        float a2 = 1.0 - phi(sdRR(p - float2(sideLine.y, 0.0), hs, r) / 0.35);\n"
+            + "        o = clamp(a1 + a2, 0.0, 1.0) * sideLine.x * (1.0 - inside);\n"
+            + "    }\n"
+            + "    return half4(rgb * a, a + o);\n"
             + "}\n";
 
     private static RuntimeShader shader;
@@ -145,6 +234,11 @@ public final class GlassShader {
         return shader;
     }
 
+    private static void layer(RuntimeShader rs, String c, String a, float[] l) {
+        rs.setFloatUniform(c, l[0], l[1], l[2], 0f);
+        rs.setFloatUniform(a, l[3], l[4]);
+    }
+
     /**
      * Draws one glass platter. Main thread only.
      *
@@ -166,15 +260,18 @@ public final class GlassShader {
             rs.setFloatUniform("size", rect.width(), rect.height());
             rs.setFloatUniform("radius", s.radius);
             rs.setFloatUniform("cornerPow", s.cornerPow);
-            rs.setFloatUniform("refrHeight", s.refractionHeight);
-            rs.setFloatUniform("refrAmount", s.refractionAmount);
-            rs.setFloatUniform("dispersion", s.dispersion);
-            rs.setFloatUniform("saturation", s.saturation);
-            rs.setFloatUniform("luma", s.lumaTarget, s.lumaMix);
-            rs.setFloatUniform("tint", s.tint[0], s.tint[1], s.tint[2], s.tint[3]);
-            rs.setFloatUniform("rim", s.rimWidth, s.rimStrength, s.glowBand, s.glowStrength);
+            rs.setFloatUniform("lens", s.refractionHeight, s.refractionAmount, s.depth, s.dispersion);
+            rs.setFloatUniform("tone", s.saturation, s.brightness);
+            layer(rs, "l1c", "l1", s.layer1);
+            layer(rs, "l2c", "l2", s.layer2);
+            layer(rs, "l3c", "l3", s.layer3);
+            rs.setFloatUniform("light", s.lightIntensity, s.lightWidth, s.lightSoftness, s.lightFalloff);
             rs.setFloatUniform("lightDir", s.lightX, s.lightY);
-            rs.setFloatUniform("outline", s.outline);
+            rs.setFloatUniform("glow", s.glowAmount, s.glowOffset, s.glowSigma);
+            rs.setFloatUniform("hairC", s.hairColor[0], s.hairColor[1], s.hairColor[2], s.hairOffset);
+            rs.setFloatUniform("hairMode", s.hairMode, s.hairAmount, s.hairSigma);
+            rs.setFloatUniform("sideLine", s.sideLine, s.sideOffset);
+            rs.setFloatUniform("edgeOnly", s.edgeOnly ? 1f : 0f);
         } catch (Throwable t) {
             failed = true;
             shader = null;
@@ -200,19 +297,20 @@ public final class GlassShader {
             canvas.drawPath(PATH, FALLBACK);
             FALLBACK.setShader(null);
         }
-        int veil = Math.round(255f * s.lumaMix * 0.6f);
-        int g = Math.round(255f * s.lumaTarget);
-        FALLBACK.setColor((veil << 24) | (g << 16) | (g << 8) | g);
+        float[] l = s.layer1;
+        int veil = Math.round(255f * Math.min(1f, l[3]));
+        FALLBACK.setColor((veil << 24) | (Math.round(l[0] * 255f) << 16) | (Math.round(l[1] * 255f) << 8)
+                | Math.round(l[2] * 255f));
         FALLBACK.setAlpha(Math.round(veil * Math.min(1f, alpha)));
         canvas.drawPath(PATH, FALLBACK);
 
         TMP.set(rect);
-        float half = s.rimWidth / 2f;
+        float half = s.lightWidth / 2f;
         TMP.inset(half, half);
         ContinuousPath.build(PATH, TMP, Math.max(0f, s.radius - half), s.smoothing);
-        RIM.setStrokeWidth(s.rimWidth);
+        RIM.setStrokeWidth(Math.max(1f, s.lightWidth));
         RIM.setColor(0xFFFFFFFF);
-        RIM.setAlpha(Math.round(255f * Math.min(1f, s.rimStrength * 1.4f) * Math.min(1f, alpha)));
+        RIM.setAlpha(Math.round(255f * Math.min(1f, s.lightIntensity) * Math.min(1f, alpha)));
         canvas.drawPath(PATH, RIM);
     }
 }

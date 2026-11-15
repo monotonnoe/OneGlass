@@ -113,12 +113,13 @@ public final class Backdrop {
             if (ticket != pending) {
                 return;
             }
-            final int blurDp = Config.current.blur;
-            new Thread(() -> load(blurDp), "OneGlass-backdrop").start();
+            final int blurKey = Config.current.blur;
+            final float frostDp = GlassSpec.frost(Config.current);
+            new Thread(() -> load(blurKey, frostDp), "OneGlass-backdrop").start();
         }, 300);
     }
 
-    private static void load(int blurDp) {
+    private static void load(int blurKey, float frostDp) {
         Context ctx = appContext;
         Bitmap full = null;
         try {
@@ -145,15 +146,18 @@ public final class Backdrop {
                 int sw = Math.min(dm.widthPixels, dm.heightPixels);
                 int sh = Math.max(dm.widthPixels, dm.heightPixels);
                 float s = Math.max(sw / (float) fw, sh / (float) fh);
-                float blurPx = blurDp * dm.density;
-                // Shrink so the blur radius stays small (cheap) on the small bitmap.
-                float screenToSmall = blurDp <= 0 ? 0.5f : Math.min(0.25f, 8f / Math.max(1f, blurPx));
+                // Figma's GLASS frost is light: keep enough resolution for crisp refraction,
+                // shrink only when the (gaussian sigma) blur is large.
+                float sigmaPx = frostDp * dm.density;
+                float screenToSmall = Math.max(0.2f, Math.min(0.5f, 3f / Math.max(0.001f, sigmaPx)));
                 kk = s * screenToSmall;
                 int w = Math.max(16, Math.round(fw * kk));
                 int h = Math.max(16, Math.round(fh * kk));
                 kk = w / (float) fw;
                 Bitmap scaled = Bitmap.createScaledBitmap(full, w, h, true);
-                int r = Math.round(blurPx * screenToSmall);
+                // 3 box passes of width w = 2r+1: sigma^2 = 3 * (w^2 - 1) / 12  =>  w = sqrt(4 sigma^2 + 1)
+                float sigmaSmall = sigmaPx * screenToSmall;
+                int r = Math.round((float) (Math.sqrt(4f * sigmaSmall * sigmaSmall + 1f) - 1f) / 2f);
                 small = BoxBlur.blur(scaled, Math.min(r, 24));
             } catch (Throwable t) {
                 Log.e("wallpaper blur failed", t);
@@ -168,7 +172,7 @@ public final class Backdrop {
             fullW = rw;
             fullH = rh;
             k = rk;
-            loadedBlur = blurDp;
+            loadedBlur = blurKey;
             generation++;
             Log.i(result != null
                     ? "backdrop ready: wallpaper " + rw + "x" + rh + " -> " + result.getWidth() + "x" + result.getHeight()

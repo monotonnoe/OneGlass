@@ -12,7 +12,7 @@ import android.content.SharedPreferences;
  */
 public final class Config {
 
-    public static final String PREFS = "oneglass";
+    public static final String PREFS = "oneglass2";
     public static final String ACTION_RELOAD = "com.monotonnoe.oneglass.RELOAD";
     public static final String LAUNCHER = "com.sec.android.app.launcher";
 
@@ -34,6 +34,8 @@ public final class Config {
     public static final String RIM = "rim";
     public static final String TINT_MODE = "tint_mode";
     public static final String TINT_ALPHA = "tint_alpha";
+    public static final String STYLE = "style";
+    public static final String TINT_COLOR = "tint_color";
     // geometry
     public static final String DOCK_RADIUS = "dock_radius";
     public static final String DOCK_PAD_H = "dock_pad_h";
@@ -46,6 +48,11 @@ public final class Config {
     public static final int TINT_LIGHT = 1;
     public static final int TINT_DARK = 2;
 
+    /** iOS 27 home screen styles (Figma Playground variants). */
+    public static final int STYLE_DEFAULT = 0;
+    public static final int STYLE_CLEAR = 1;
+    public static final int STYLE_TINTED = 2;
+
     public boolean dock = true;
     public boolean pill = true;
     public boolean widgets = true;
@@ -54,31 +61,33 @@ public final class Config {
     public boolean iconRim = true;
     public boolean diag = false;
 
-    /** Frost of the backdrop, dp. */
-    public int blur = 12;
-    /** How far the edge pulls the backdrop, dp. */
-    public int refraction = 16;
-    /** Width of the refracting edge band, dp. */
-    public int refractionHeight = 18;
-    /** Chromatic dispersion at the edge, percent. */
-    public int dispersion = 30;
-    /** Backdrop vibrancy, percent (100 = unchanged). */
-    public int saturation = 150;
-    /** Mix of the #999999 luminosity layer from the Figma material, percent. */
-    public int lumaMix = 33;
-    /** Strength of the light hairlines / inner glow, percent. */
-    public int rim = 100;
+    /** iOS style of the glass: Default, Clear or Tinted (Figma Playground). */
+    public int style = STYLE_CLEAR;
+    /** Light / dark appearance. */
     public int tintMode = TINT_AUTO;
-    /** Extra milky (light) or smoky (dark) tint, percent. */
+    /** Tint colour for the Tinted style (Figma: #24A8F1). */
+    public int tintColor = 0xFF24A8F1;
+
+    // Fine-tune multipliers, percent of the values measured from the Figma kit (100 = 1:1).
+    public int blur = 100;
+    public int refraction = 100;
+    public int dispersion = 100;
+    public int rim = 100;
+    // Legacy keys kept so old settings files still parse.
+    public int refractionHeight = 100;
+    public int saturation = 100;
+    public int lumaMix = 100;
     public int tintAlpha = 0;
 
-    public int dockRadius = 38;
+    /** Figma: Dock 357x99, corner radius 35. */
+    public int dockRadius = 35;
     public int dockPadH = 10;
     public int dockPadV = 10;
-    public int widgetRadius = 26;
+    /** Figma: widget 158x158, corner radius 27. */
+    public int widgetRadius = 27;
     /** 0 = auto. */
     public int pillWidth = 0;
-    public int iconRimAlpha = 55;
+    public int iconRimAlpha = 100;
 
     /** Bumped on every reload so cached drawings know they are stale. */
     public int generation;
@@ -104,6 +113,8 @@ public final class Config {
         c.rim = p.getInt(RIM, d.rim);
         c.tintMode = p.getInt(TINT_MODE, d.tintMode);
         c.tintAlpha = p.getInt(TINT_ALPHA, d.tintAlpha);
+        c.style = p.getInt(STYLE, d.style);
+        c.tintColor = p.getInt(TINT_COLOR, d.tintColor);
         c.dockRadius = p.getInt(DOCK_RADIUS, d.dockRadius);
         c.dockPadH = p.getInt(DOCK_PAD_H, d.dockPadH);
         c.dockPadV = p.getInt(DOCK_PAD_V, d.dockPadV);
@@ -130,6 +141,8 @@ public final class Config {
                 .putInt(RIM, rim)
                 .putInt(TINT_MODE, tintMode)
                 .putInt(TINT_ALPHA, tintAlpha)
+                .putInt(STYLE, style)
+                .putInt(TINT_COLOR, tintColor)
                 .putInt(DOCK_RADIUS, dockRadius)
                 .putInt(DOCK_PAD_H, dockPadH)
                 .putInt(DOCK_PAD_V, dockPadV)
