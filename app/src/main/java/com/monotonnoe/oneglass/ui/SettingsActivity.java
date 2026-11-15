@@ -14,8 +14,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.Switch;
@@ -24,7 +22,11 @@ import android.widget.Toast;
 
 import com.monotonnoe.oneglass.Config;
 
-/** Module settings: live preview + switches and sliders, pushed to One UI Home instantly. */
+/**
+ * OneGlass' own options (opened from the main settings): the iOS 27 dock platter and the
+ * iOS 27 grid. The glass itself (look, icons, folders, widgets, lock screen) is set up on the
+ * main settings screen.
+ */
 public final class SettingsActivity extends Activity {
 
     private interface IntProp {
@@ -43,9 +45,7 @@ public final class SettingsActivity extends Activity {
     private final Runnable push = this::pushToLauncher;
 
     private SharedPreferences prefs;
-    private boolean worldReadable;
     private Config config;
-    private PreviewView preview;
     private LinearLayout list;
 
     @Override
@@ -59,12 +59,8 @@ public final class SettingsActivity extends Activity {
     @SuppressWarnings("deprecation")
     private SharedPreferences openPrefs() {
         try {
-            // LSPosed allows this for enabled modules and serves the file to the launcher.
-            SharedPreferences p = getSharedPreferences(Config.PREFS, Context.MODE_WORLD_READABLE);
-            worldReadable = true;
-            return p;
+            return getSharedPreferences(Config.PREFS, Context.MODE_WORLD_READABLE);
         } catch (SecurityException e) {
-            worldReadable = false;
             return getSharedPreferences(Config.PREFS, Context.MODE_PRIVATE);
         }
     }
@@ -82,136 +78,23 @@ public final class SettingsActivity extends Activity {
         scroll.addView(list);
 
         TextView title = new TextView(this);
-        title.setText("OneGlass");
-        title.setTextSize(28);
+        title.setText("Док и сетка iOS 27");
+        title.setTextSize(26);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         list.addView(title);
 
-        TextView status = new TextView(this);
-        status.setText(worldReadable
-                ? "Модуль включён в LSPosed. Изменения применяются к One UI Home сразу."
-                : "Модуль не включён в LSPosed (или LSPosed не запущен). Включите его для «One UI Home» и перезапустите лаунчер.");
-        status.setAlpha(0.75f);
-        status.setPadding(0, dp(4), 0, dp(12));
-        list.addView(status);
+        TextView hint = new TextView(this);
+        hint.setText("Размеры из Figma «iOS 27 Widgets» → Playground. Стекло дока — то же, что у иконок "
+                + "(вид и картинка для живых обоев настраиваются на главном экране настроек).");
+        hint.setAlpha(0.75f);
+        hint.setPadding(0, dp(4), 0, dp(12));
+        list.addView(hint);
 
-        preview = new PreviewView(this);
-        preview.setConfig(config);
-        LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(dp(240), ViewGroup.LayoutParams.WRAP_CONTENT);
-        plp.gravity = Gravity.CENTER_HORIZONTAL;
-        plp.bottomMargin = dp(8);
-        list.addView(preview, plp);
-
-        section("Картинка под стеклом");
-        TextView picInfo = new TextView(this);
-        boolean hasPic = PictureProvider.file(this).isFile();
-        picInfo.setText((hasPic ? "Картинка выбрана. " : "Картинка не выбрана. ")
-                + "С живыми обоями лаунчер не может прочитать изображение — выберите ту же картинку, "
-                + "что стоит на обоях, иначе стекло будет серым. Если она уже выбрана в BlurIcons, она используется автоматически.");
-        picInfo.setTextSize(13);
-        picInfo.setAlpha(0.75f);
-        list.addView(picInfo);
-        Button pick = new Button(this);
-        pick.setText(hasPic ? "Заменить картинку обоев" : "Выбрать картинку обоев");
-        pick.setOnClickListener(v -> {
-            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            i.addCategory(Intent.CATEGORY_OPENABLE);
-            i.setType("image/*");
-            startActivityForResult(i, PICK_PICTURE);
-        });
-        list.addView(pick);
-
-        TextView conflicts = new TextView(this);
-        conflicts.setText("Для One UI Home отключите в LSPosed модули, которые рисуют то же самое: BlurIcons, "
-                + "SquareWidgets (если включена «Сетка iOS 27»). SearchPill определяется автоматически — тогда своя таблетка не рисуется.");
-        conflicts.setTextSize(13);
-        conflicts.setAlpha(0.75f);
-        conflicts.setPadding(0, dp(10), 0, 0);
-        list.addView(conflicts);
-
-        section("Где стекло");
-        toggle("Сетка iOS 27", "Иконки, виджеты и док по сетке макета: иконки 60 pt, шаг 90×97.8, виджеты 158/338. В One UI выберите сетку 4×6",
-                new BoolProp() {
-                    public boolean get(Config c) { return c.iosGrid; }
-                    public void set(Config c, boolean v) { c.iosGrid = v; }
-                });
-        toggle("Док", "Стеклянная подложка под иконками дока (Figma: 357×99, радиус 35)",
+        toggle("Стеклянный док", "Подложка дока 357×99 pt, радиус 35, иконки по центру",
                 new BoolProp() {
                     public boolean get(Config c) { return c.dock; }
                     public void set(Config c, boolean v) { c.dock = v; }
                 });
-        toggle("Таблетка индикатора страниц", "Стеклянная «Search»-таблетка за точками страниц",
-                new BoolProp() {
-                    public boolean get(Config c) { return c.pill; }
-                    public void set(Config c, boolean v) { c.pill = v; }
-                });
-        toggle("Виджеты", "Стеклянный фон виджетов. Прозрачность фона самого виджета поставьте на 100% в его настройках",
-                new BoolProp() {
-                    public boolean get(Config c) { return c.widgets; }
-                    public void set(Config c, boolean v) { c.widgets = v; }
-                });
-        toggle("Скругление виджетов", "Обрезать виджеты по непрерывному скруглению iOS",
-                new BoolProp() {
-                    public boolean get(Config c) { return c.widgetClip; }
-                    public void set(Config c, boolean v) { c.widgetClip = v; }
-                });
-        toggle("Папки", "Стеклянная подложка иконок папок",
-                new BoolProp() {
-                    public boolean get(Config c) { return c.folders; }
-                    public void set(Config c, boolean v) { c.folders = v; }
-                });
-        toggle("Открытая папка", "Стеклянная панель открытой папки",
-                new BoolProp() {
-                    public boolean get(Config c) { return c.folderPanel; }
-                    public void set(Config c, boolean v) { c.folderPanel = v; }
-                });
-        toggle("Стекло на иконках", "Default: слой GLASS поверх иконки. Clear/Tinted: стеклянная плитка и символ иконки (меню приложений не меняется)",
-                new BoolProp() {
-                    public boolean get(Config c) { return c.iconRim; }
-                    public void set(Config c, boolean v) { c.iconRim = v; }
-                });
-
-        section("Стиль iOS 27 (Figma Playground)");
-        choice("Вид", new String[]{"Default", "Clear", "Tinted"},
-                new int[]{Config.STYLE_DEFAULT, Config.STYLE_CLEAR, Config.STYLE_TINTED}, new IntProp() {
-                    public int get(Config c) { return c.style; }
-                    public void set(Config c, int v) { c.style = v; }
-                });
-        choice("Оформление", new String[]{"Как в системе", "Светлое", "Тёмное"},
-                new int[]{Config.TINT_AUTO, Config.TINT_LIGHT, Config.TINT_DARK}, new IntProp() {
-                    public int get(Config c) { return c.tintMode; }
-                    public void set(Config c, int v) { c.tintMode = v; }
-                });
-        colors();
-
-        section("Материал (100% = как в макете)");
-        toggle("Свет от наклона", "Блик стекла поворачивается вслед за наклоном телефона, как в iOS 26/27",
-                new BoolProp() {
-                    public boolean get(Config c) { return c.lightTilt; }
-                    public void set(Config c, boolean v) { c.lightTilt = v; }
-                });
-        slider("Матовость (frost)", 0, 400, "%", new IntProp() {
-            public int get(Config c) { return c.blur; }
-            public void set(Config c, int v) { c.blur = v; }
-        });
-        slider("Преломление", 0, 300, "%", new IntProp() {
-            public int get(Config c) { return c.refraction; }
-            public void set(Config c, int v) { c.refraction = v; }
-        });
-        slider("Дисперсия", 0, 300, "%", new IntProp() {
-            public int get(Config c) { return c.dispersion; }
-            public void set(Config c, int v) { c.dispersion = v; }
-        });
-        slider("Освещение стекла", 0, 300, "%", new IntProp() {
-            public int get(Config c) { return c.rim; }
-            public void set(Config c, int v) { c.rim = v; }
-        });
-
-        section("Геометрия");
-        slider("Радиус дока (макет: 35)", 0, 60, "dp", new IntProp() {
-            public int get(Config c) { return c.dockRadius; }
-            public void set(Config c, int v) { c.dockRadius = v; }
-        });
         slider("Док шире макета на", -20, 40, "pt", new IntProp() {
             public int get(Config c) { return c.dockPadH; }
             public void set(Config c, int v) { c.dockPadH = v; }
@@ -220,66 +103,26 @@ public final class SettingsActivity extends Activity {
             public int get(Config c) { return c.dockPadV; }
             public void set(Config c, int v) { c.dockPadV = v; }
         });
-        slider("Радиус виджетов (макет: 27)", 0, 48, "dp", new IntProp() {
-            public int get(Config c) { return c.widgetRadius; }
-            public void set(Config c, int v) { c.widgetRadius = v; }
-        });
-        slider("Ширина таблетки (0 = авто)", 0, 240, "dp", new IntProp() {
-            public int get(Config c) { return c.pillWidth; }
-            public void set(Config c, int v) { c.pillWidth = v; }
-        });
-        slider("Сила стекла на иконках", 0, 100, "%", new IntProp() {
-            public int get(Config c) { return c.iconRimAlpha; }
-            public void set(Config c, int v) { c.iconRimAlpha = v; }
-        });
-
-        section("Как в iOS");
-        toggle("Скрыть значки-бейджи", "Без значков рабочего профиля, клонов и т. п. на иконках",
+        toggle("Сетка iOS 27", "Иконки 60 pt с шагом 90×97.8 pt, виджеты 158/338 pt. В One UI выберите сетку 4×6 "
+                        + "и отключите SquareWidgets, иначе модули будут спорить за расположение",
                 new BoolProp() {
-                    public boolean get(Config c) { return c.hideBadges; }
-                    public void set(Config c, boolean v) { c.hideBadges = v; }
+                    public boolean get(Config c) { return c.iosGrid; }
+                    public void set(Config c, boolean v) { c.iosGrid = v; }
                 });
-        toggle("Без затемнения иконок", "One UI затемняет иконки в некоторых состояниях, iOS — нет",
-                new BoolProp() {
-                    public boolean get(Config c) { return c.noDim; }
-                    public void set(Config c, boolean v) { c.noDim = v; }
-                });
-
-        section("Отладка");
-        toggle("Диагностика", "Один раз записать дерево view лаунчера в журнал LSPosed (нужен перезапуск лаунчера)",
+        toggle("Диагностика", "Один раз записать дерево view лаунчера в журнал LSPosed",
                 new BoolProp() {
                     public boolean get(Config c) { return c.diag; }
                     public void set(Config c, boolean v) { c.diag = v; }
                 });
 
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setPadding(0, dp(16), 0, 0);
-        Button reset = new Button(this);
-        reset.setText("Сбросить");
-        reset.setOnClickListener(v -> {
-            config = new Config();
-            save();
-            recreate();
-        });
         Button restart = new Button(this);
         restart.setText("Перезапустить One UI Home");
         restart.setOnClickListener(v -> restartLauncher());
-        buttons.addView(reset, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        buttons.addView(restart, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.6f));
-        list.addView(buttons);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(16);
+        list.addView(restart, lp);
         return scroll;
-    }
-
-    private void section(String name) {
-        TextView t = new TextView(this);
-        t.setText(name);
-        t.setTextSize(13);
-        t.setAllCaps(true);
-        t.setTypeface(Typeface.DEFAULT_BOLD);
-        t.setAlpha(0.6f);
-        t.setPadding(0, dp(20), 0, dp(4));
-        list.addView(t);
     }
 
     private void toggle(String name, String summary, BoolProp prop) {
@@ -342,129 +185,12 @@ public final class SettingsActivity extends Activity {
         list.addView(bar);
     }
 
-    private void choice(String name, String[] names, int[] values, IntProp prop) {
-        TextView t = new TextView(this);
-        t.setText(name);
-        t.setTextSize(15);
-        t.setPadding(0, dp(10), 0, 0);
-        list.addView(t);
-        RadioGroup g = new RadioGroup(this);
-        g.setOrientation(RadioGroup.HORIZONTAL);
-        for (int i = 0; i < names.length; i++) {
-            RadioButton b = new RadioButton(this);
-            b.setText(names[i]);
-            b.setId(View.generateViewId());
-            final int value = values[i];
-            g.addView(b);
-            if (prop.get(config) == value) {
-                b.setChecked(true);
-            }
-            b.setOnCheckedChangeListener((btn, on) -> {
-                if (on) {
-                    prop.set(config, value);
-                    changed();
-                }
-            });
-        }
-        list.addView(g);
-    }
-
-    /** Tint colours for the Tinted style (first one is the Figma kit's #24A8F1). */
-    private void colors() {
-        TextView t = new TextView(this);
-        t.setText("Цвет тинта (Tinted)");
-        t.setTextSize(15);
-        t.setPadding(0, dp(10), 0, dp(6));
-        list.addView(t);
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        int[] colors = {0xFF24A8F1, 0xFF30D158, 0xFFFFD60A, 0xFFFF9F0A, 0xFFFF375F, 0xFFBF5AF2, 0xFF8E8E93};
-        for (int col : colors) {
-            View sw = new View(this);
-            android.graphics.drawable.GradientDrawable d = new android.graphics.drawable.GradientDrawable();
-            d.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-            d.setColor(col);
-            d.setStroke(dp(config.tintColor == col ? 3 : 1), config.tintColor == col ? 0xFFFFFFFF : 0x40000000);
-            sw.setBackground(d);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(34), dp(34));
-            lp.rightMargin = dp(10);
-            sw.setOnClickListener(v -> {
-                config.tintColor = col;
-                changed();
-                recreate();
-            });
-            row.addView(sw, lp);
-        }
-        list.addView(row);
-    }
-
     private void changed() {
-        preview.setConfig(config);
-        save();
-        handler.removeCallbacks(push);
-        handler.postDelayed(push, 250);
-    }
-
-    private void save() {
         SharedPreferences.Editor e = prefs.edit();
         config.write(e);
         e.commit();
-    }
-
-    private static final int PICK_PICTURE = 7;
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != PICK_PICTURE || resultCode != RESULT_OK || data == null || data.getData() == null) {
-            return;
-        }
-        final android.net.Uri uri = data.getData();
-        new Thread(() -> {
-            boolean ok = savePicture(uri);
-            handler.post(() -> {
-                Toast.makeText(this, ok ? "Картинка сохранена, лаунчер обновит стекло"
-                        : "Не удалось прочитать картинку", Toast.LENGTH_LONG).show();
-                if (ok) {
-                    sendBroadcast(new Intent(Config.ACTION_RELOAD).setPackage(Config.LAUNCHER).putExtra("picture", true));
-                    recreate();
-                }
-            });
-        }).start();
-    }
-
-    /** Stores the picture (at most screen size) for the launcher's PictureProvider reads. */
-    private boolean savePicture(android.net.Uri uri) {
-        try {
-            android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
-            o.inJustDecodeBounds = true;
-            try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
-                android.graphics.BitmapFactory.decodeStream(in, null, o);
-            }
-            int longSide = Math.max(getResources().getDisplayMetrics().widthPixels,
-                    getResources().getDisplayMetrics().heightPixels);
-            int sample = 1;
-            while (Math.max(o.outWidth, o.outHeight) / (sample * 2) >= longSide) {
-                sample *= 2;
-            }
-            android.graphics.BitmapFactory.Options o2 = new android.graphics.BitmapFactory.Options();
-            o2.inSampleSize = sample;
-            android.graphics.Bitmap b;
-            try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
-                b = android.graphics.BitmapFactory.decodeStream(in, null, o2);
-            }
-            if (b == null) {
-                return false;
-            }
-            java.io.File tmp = new java.io.File(getFilesDir(), PictureProvider.FILE + ".tmp");
-            try (java.io.FileOutputStream out = new java.io.FileOutputStream(tmp)) {
-                b.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, out);
-            }
-            return tmp.renameTo(PictureProvider.file(this));
-        } catch (Throwable t) {
-            android.util.Log.e("OneGlass", "picture", t);
-            return false;
-        }
+        handler.removeCallbacks(push);
+        handler.postDelayed(push, 250);
     }
 
     private void pushToLauncher() {
@@ -482,7 +208,7 @@ public final class SettingsActivity extends Activity {
             }
             final boolean done = ok;
             handler.post(() -> Toast.makeText(this,
-                    done ? "One UI Home перезапущен" : "Нет root-доступа: перезапустите лаунчер вручную (Настройки → Приложения → One UI Home → Остановить)",
+                    done ? "One UI Home перезапущен" : "Нет root-доступа: перезапустите лаунчер вручную",
                     Toast.LENGTH_LONG).show());
         }).start();
     }

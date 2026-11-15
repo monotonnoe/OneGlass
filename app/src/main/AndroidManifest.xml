@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- lets the launcher see our picture provider (package visibility) -->
     <queries>
         <package android:name="com.sec.android.app.launcher" />
+        <!-- Photo Tile gets the gallery widget's look with each save. -->
+        <package android:name="dev.flexy.phototile" />
+        <!-- The lock screen icons: icon packs, and the apps they are for. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="org.adw.launcher.THEMES" />
+        </intent>
+        <intent>
+            <action android:name="com.novalauncher.THEME" />
+        </intent>
+        <intent>
+            <action android:name="com.gau.go.launcherex.theme" />
+        </intent>
+        <intent>
+            <action android:name="com.teslacoilsw.launcher.THEME" />
+        </intent>
+        <intent>
+            <action android:name="com.anddoes.launcher.THEME" />
+        </intent>
     </queries>
 
     <application
@@ -17,16 +38,12 @@
         <meta-data android:name="xposeddescription" android:value="@string/xposed_description" />
         <meta-data android:name="xposedminversion" android:value="93" />
         <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
-        <!-- Lets the launcher read our settings through XSharedPreferences -->
+        <!-- Lets the launcher read the dock / grid options through XSharedPreferences -->
         <meta-data android:name="xposedsharedprefs" android:value="true" />
 
-        <provider
-            android:name=".ui.PictureProvider"
-            android:authorities="com.monotonnoe.oneglass.picture"
-            android:exported="true" />
-
+        <!-- Main settings: the glass engine's settings app. -->
         <activity
-            android:name=".ui.SettingsActivity"
+            android:name=".engine.SettingsActivity"
             android:exported="true"
             android:label="@string/app_name">
             <intent-filter>
@@ -34,9 +51,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
-                <action android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
-                <category android:name="android.intent.category.DEFAULT" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
             </intent-filter>
         </activity>
+
+        <!-- OneGlass' own options: dock and iOS grid. -->
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false"
+            android:label="@string/page_dock_grid" />
+
+        <!-- Read by One UI Home and System UI (the hooked processes). -->
+        <provider
+            android:name=".engine.SettingsProvider"
+            android:authorities="com.monotonnoe.oneglass.engine.settings"
+            android:exported="true" />
     </application>
 </manifest>

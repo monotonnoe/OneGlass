@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OneGlass</string>
+    <string name="xposed_description">Жидкое стекло для One UI: под иконками, папками, виджетами и строкой поиска рабочего стола и на уведомлениях экрана блокировки. Иконки остаются такими, какими их рисует ваш иконпак.</string>
+    <string name="about">OneGlass %1$s. Стекло само принимает форму каждой иконки, поэтому подходит к любому иконпаку; сами иконки не меняются.</string>
+    <string name="back">Назад</string>
+    <string name="on">Вкл.</string>
+    <string name="off">Выкл.</string>
+
+    <!-- Pages -->
+    <string name="page_home">Рабочий стол</string>
+    <string name="page_lock">Экран блокировки</string>
+    <string name="page_advanced">Дополнительно</string>
+    <string name="page_backup">Резервная копия</string>
+
+    <!-- Status -->
+    <string name="status">Состояние</string>
+    <string name="status_home">Рабочий стол</string>
+    <string name="status_lock">Экран блокировки</string>
+    <string name="status_active">Работает</string>
+    <string name="status_active_blur">Работает (размытие)</string>
+    <string name="status_blur_only">Только размытие</string>
+    <string name="status_restart">Нужен перезапуск</string>
+    <string name="status_not_running">Не запущен</string>
+    <string name="status_hint">Включите OneGlass в LSPosed для One UI Home и System UI. После установки или обновления перезапустите рабочий стол (Настройки › Приложения › One UI Home › Остановить); экрану блокировки нужна перезагрузка телефона.</string>
+    <string name="status_hint_picture">Обои живые или их нельзя прочитать, поэтому рабочий стол использует простое размытие. Выберите картинку для стекла на странице «Рабочий стол».</string>
+
+    <!-- Home Screen: preview -->
+    <string name="preview_description">Предпросмотр рабочего стола со стеклом в текущих настройках</string>
+    <string name="preview_folder">Папка</string>
+    <string name="preview_search">Поиск</string>
+    <string name="preview_widget_place">Сегодня</string>
+    <string name="preview_widget_sunny">Солнечно</string>
+    <string name="tinted">Прозрачное или тонированное</string>
+    <string name="tinted_hint">Прозрачное стекло пропускает больше. Тонированное добавляет под стекло тон для большего контраста с тем, что под ним.</string>
+
+    <!-- Home Screen: effect and colour -->
+    <string name="style">Эффект</string>
+    <string name="style_hint">Жидкое стекло преломляет обои по краям, как в iOS 26. Ему нужны обои-картинка или картинка, выбранная ниже; иначе используется размытие.</string>
+    <string name="style_liquid">Жидкое стекло</string>
+    <string name="style_blur">Размытие</string>
+    <string name="tint_color">Цвет стекла</string>
+    <string name="tint_automatic">Автоматически</string>
+    <string name="tint_custom">Свой цвет…</string>
+    <string name="tint_auto">Автоматически: светлый или тёмный вместе с темой системы.</string>
+    <string name="tint_value">Цвет %1$s.</string>
+    <string name="tint_color_hint">Окрашивает стекло иконок, папок и виджетов с силой тонировки выше.</string>
+    <string name="tint_invalid">Это не цвет: укажите #RRGGBB.</string>
+
+    <!-- Home Screen: glass -->
+    <string name="group_glass">Стекло</string>
+    <string name="group_glass_hint">Предпросмотр меняется, пока вы двигаете ползунок; рабочий стол — когда отпустите.</string>
+    <string name="glass_blur">Матовость</string>
+    <string name="lens_amount">Преломление</string>
+    <string name="glass_rim">Блик по краю</string>
+    <string name="glass_hairline">Тень по краю</string>
+    <string name="group_where">Стекло под</string>
+    <string name="glass_folders">Папками</string>
+    <string name="glass_widgets">Виджетами</string>
+    <string name="glass_search">Строкой поиска</string>
+    <string name="glass_search_sub">Серое стекло на экране приложений</string>
+    <string name="glass_drawer">Иконками на экране приложений</string>
+    <string name="group_folder">Открытые папки</string>
+    <string name="glass_folder_panel">Стеклянный фон</string>
+    <string name="glass_open_folder">Стекло под иконками</string>
+    <string name="folder_morph">Вырастает из иконки папки</string>
+    <string name="group_widgets">Виджеты</string>
+    <string name="widget_ios_corners">Углы как на iPhone</string>
+    <string name="widget_ios_corners_sub">Более круглые, плавные углы виджетов</string>
+    <string name="gallery_look">Фото-виджет</string>
+    <string name="gallery_look_full">Полный цвет</string>
+    <string name="gallery_look_mono">Монохром</string>
+    <string name="gallery_look_tinted">Тонированный</string>
+    <string name="gallery_light">Яркость тонированного фото</string>
+    <string name="gallery_spatial">Пространственная сцена</string>
+    <string name="gallery_spatial_sub">Фото движется вместе с наклоном телефона</string>
+    <string name="gallery_hint">Настройки фото-виджета действуют на виджеты Галереи и Google Фото, а также на Photo Tile.</string>
+    <string name="group_motion">Свет и движение</string>
+    <string name="glass_light">Блик следует за наклоном</string>
+    <string name="glass_condense">Анимация появления</string>
+    <string name="glass_condense_sub">Линза набухает и успокаивается, когда стекло появляется</string>
+    <string name="group_icons">Иконки</string>
+    <string name="pack_peel">Убирать стекло иконпаков</string>
+    <string name="pack_peel_sub">Для стеклянных иконпаков: остаётся только символ</string>
+    <string name="hide_badges">Скрывать значки Защищённой папки</string>
+    <string name="icons_hint">При изменении этих настроек рабочий стол перезапускается.</string>
+    <string name="picture">Картинка для стекла</string>
+    <string name="picture_hint">Используется, когда обои живые или их нельзя прочитать. Выберите ту же картинку, что и на обоях (для живых — кадр из их видео).</string>
+    <string name="picture_current">Картинка</string>
+    <string name="picture_choose">Выбрать фото…</string>
+    <string name="picture_remove">Удалить картинку</string>
+    <string name="picture_none">Нет</string>
+    <string name="picture_set">Выбрана</string>
+    <string name="picture_saving">Сохранение…</string>
+    <string name="picture_failed">Не удалось прочитать эту картинку.</string>
+
+    <!-- Lock Screen -->
+    <string name="group_lock_notif">Уведомления</string>
+    <string name="lock_notif_glass">Стеклянные карточки</string>
+    <string name="lock_notif_bottom">Внизу экрана</string>
+    <string name="lock_notif_pile">Стопкой</string>
+    <string name="lock_notif_hint">Нужно включить System UI для OneGlass в LSPosed. Включение и выключение стеклянных карточек вступает в силу после перезагрузки телефона.</string>
+    <string name="group_card_look">Вид карточек</string>
+    <string name="lock_notif_style">Стиль карточек</string>
+    <string name="lock_notif_style_ios">iOS</string>
+    <string name="lock_notif_style_rim">Стеклянный ободок</string>
+    <string name="lock_notif_radius">Углы</string>
+    <string name="lock_notif_shade">Молочность</string>
+    <string name="lock_notif_blur">Размытие</string>
+    <string name="lock_notif_refraction">Преломление по краю</string>
+    <string name="lock_notif_refraction_hint">Если преломление больше 0, карточки рисуются из картинки, которую присылает рабочий стол; при 0 используется только системное размытие.</string>
+    <string name="font">Шрифт уведомлений</string>
+    <string name="font_hint">Для карточек: заголовок полужирным, текст обычным, как в iOS. Выберите файл шрифта (.ttf или .otf) для каждого или один вариативный шрифт для обоих. Файлы остаются на телефоне.</string>
+    <string name="font_title">Заголовок</string>
+    <string name="font_text">Текст</string>
+    <string name="font_system">Системный шрифт</string>
+    <string name="font_none">Системный</string>
+    <string name="font_failed">Этот файл не является шрифтом, который может прочитать система.</string>
+    <string name="lock_icons">Иконки уведомлений</string>
+    <string name="lock_icons_hint">Цветные иконки приложений на карточках уведомлений, как в iOS: из иконпака (для лаунчеров вроде Nova; применять его не нужно) или собственные иконки приложений. Иконку можно выбрать и для каждого приложения отдельно. Рабочий стол сохраняет свои иконки.</string>
+    <string name="lock_icons_pack">Иконпак</string>
+    <string name="lock_icons_apps">Для приложений</string>
+    <string name="lock_icons_oneui">Иконки One UI</string>
+    <string name="lock_icons_own">Иконки приложений</string>
+    <string name="lock_icons_none_chosen">Нет</string>
+    <plurals name="lock_icons_chosen">
+        <item quantity="one">%1$d приложение</item>
+        <item quantity="few">%1$d приложения</item>
+        <item quantity="many">%1$d приложений</item>
+        <item quantity="other">%1$d приложения</item>
+    </plurals>
+    <string name="lock_icons_no_packs">Иконпаки не установлены: установите иконпак для лаунчеров (Nova, Lawnchair, ADW…).</string>
+    <string name="lock_icons_default">По умолчанию (из иконпака, иначе своя)</string>
+    <string name="lock_icons_app_own">Собственная иконка приложения</string>
+    <string name="lock_icons_app_oneui">Иконка One UI</string>
+    <string name="lock_icons_from_pack">Выбрать из иконпака…</string>
+    <string name="lock_icons_search">Поиск по иконкам иконпака</string>
+    <string name="group_fingerprint">Отпечаток пальца</string>
+    <string name="lock_hide_fp_icon">Скрыть значок отпечатка</string>
+    <string name="lock_hide_fp_icon_hint">Также добавьте приложение биометрии One UI в область действия OneGlass в LSPosed.</string>
+
+    <!-- Advanced -->
+    <string name="group_home">Стекло рабочего стола</string>
+    <string name="lens_height">Ширина края преломления</string>
+    <string name="glass_saturation">Насыщенность</string>
+    <string name="lens_depth">Эффект глубины</string>
+    <string name="lens_depth_sub">Более круглое преломление к середине</string>
+    <string name="group_drawer">Экран приложений</string>
+    <string name="drawer_blur">Матовость</string>
+    <string name="drawer_lens_height">Ширина края преломления</string>
+    <string name="drawer_lens_amount">Преломление</string>
+    <string name="drawer_saturation">Насыщенность</string>
+    <string name="drawer_tint">Тонировка</string>
+    <string name="folder_blur">Матовость стекла иконок</string>
+    <string name="folder_panel_tint">Тонировка фона</string>
+    <string name="folder_panel_lens">Преломление фона</string>
+    <string name="group_search">Строки поиска</string>
+    <string name="search_gray">Серость</string>
+    <string name="search_blur">Матовость</string>
+    <string name="search_saturation">Насыщенность</string>
+    <string name="search_lens">Преломление</string>
+    <string name="group_gallery">Фото-виджет</string>
+    <string name="gallery_glare">Световая линия</string>
+    <string name="group_card_rim">Ободок карточек экрана блокировки</string>
+    <string name="card_rim_hint">Для стиля карточек «Стеклянный ободок».</string>
+    <string name="lock_notif_rim">Яркость ободка</string>
+    <string name="lock_notif_rim_color">Цвет ободка</string>
+    <string name="lock_notif_rings">Кольца ободка</string>
+    <string name="lock_notif_band">Толщина колец</string>
+    <string name="lock_notif_corner_shadow">Затухание у других углов</string>
+    <string name="lock_notif_border">Цветная рамка</string>
+    <string name="lock_notif_border_color">Цвет рамки</string>
+    <string name="rim_white">Белый</string>
+    <string name="rim_cool">Холодный голубой</string>
+    <string name="rim_warm">Тёплый</string>
+    <string name="rim_lilac">Сиреневый</string>
+    <string name="rim_pink">Розовый</string>
+    <string name="rim_mint">Мятный</string>
+    <string name="glass_reset">Сбросить настройки</string>
+    <string name="glass_reset_confirm">Сбросить настройки стекла?</string>
+    <string name="glass_reset_do">Сбросить</string>
+    <string name="glass_reset_hint">Возвращает все настройки стекла рабочего стола и экрана блокировки. Ваша картинка, шрифты и иконки уведомлений сохранятся.</string>
+
+    <!-- Values -->
+    <string name="value_percent">%1$d %%</string>
+    <string name="value_dp">%1$s dp</string>
+    <string name="value_px">%1$d пикс.</string>
+    <string name="value_times">×%1$s</string>
+    <string name="value_as_home">Как на рабочем столе</string>
+
+    <!-- Backup -->
+    <string name="transfer_export">Экспорт настроек…</string>
+    <string name="transfer_import">Импорт настроек…</string>
+    <string name="transfer_hint">Все настройки в небольшом текстовом файле — чтобы сохранить или перенести на другой телефон. Импорт применяется сразу.</string>
+    <string name="transfer_exported">Экспортировано.</string>
+    <string name="transfer_imported">Импортировано значений: %1$d.</string>
+    <string name="transfer_failed">Ошибка: %1$s</string>
+    <string name="page_dock_grid">Док и сетка iOS 27</string>
+</resources>

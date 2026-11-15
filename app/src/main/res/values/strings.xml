@@ -1,5 +1,203 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">OneGlass</string>
-    <string name="xposed_description">Liquid Glass (iOS 27) для рабочего стола One UI 8.5: стеклянный док, таблетка индикатора страниц, виджеты, папки и блики на иконках.</string>
+    <string name="xposed_description">Liquid glass for One UI: under the Home screen\'s icons, folders, widgets and search bar, and on the lock screen\'s notifications. Your icons stay exactly as your icon pack draws them.</string>
+    <string name="about">OneGlass %1$s. The glass takes the shape of each icon by itself, so it fits any icon pack; the icons themselves are not changed.</string>
+    <string name="back">Back</string>
+    <string name="on">On</string>
+    <string name="off">Off</string>
+
+    <!-- Pages -->
+    <string name="page_home">Home Screen</string>
+    <string name="page_lock">Lock Screen</string>
+    <string name="page_advanced">Advanced</string>
+    <string name="page_backup">Backup</string>
+
+    <!-- Status -->
+    <string name="status">Status</string>
+    <string name="status_home">Home Screen</string>
+    <string name="status_lock">Lock Screen</string>
+    <string name="status_active">Active</string>
+    <string name="status_active_blur">Active (Blur)</string>
+    <string name="status_blur_only">Blur only</string>
+    <string name="status_restart">Restart needed</string>
+    <string name="status_not_running">Not running</string>
+    <string name="status_hint">Enable OneGlass in LSPosed for One UI Home and System UI. After installing or updating, restart the Home screen (Settings › Apps › One UI Home › Force stop); the lock screen needs a restart of the phone.</string>
+    <string name="status_hint_picture">The wallpaper is live or cannot be read, so the Home screen uses a plain blur. Choose a picture for the glass on the Home Screen page.</string>
+
+    <!-- Home Screen: preview -->
+    <string name="preview_description">Preview of the Home screen with the glass as it is set</string>
+    <string name="preview_folder">Folder</string>
+    <string name="preview_search">Search</string>
+    <string name="preview_widget_place">Today</string>
+    <string name="preview_widget_sunny">Sunny</string>
+    <string name="tinted">Clear or tinted</string>
+    <string name="tinted_hint">Clear is more transparent. Tinted adds a tone behind the glass for more contrast with what is under it.</string>
+
+    <!-- Home Screen: effect and colour -->
+    <string name="style">Effect</string>
+    <string name="style_hint">Liquid glass bends the wallpaper at the edges, as on iOS 26. It needs a picture wallpaper, or a picture chosen below; otherwise the blur is used.</string>
+    <string name="style_liquid">Liquid Glass</string>
+    <string name="style_blur">Blur</string>
+    <string name="tint_color">Glass Colour</string>
+    <string name="tint_automatic">Automatic</string>
+    <string name="tint_custom">Custom Colour…</string>
+    <string name="tint_auto">Automatic: light or dark with the system theme.</string>
+    <string name="tint_value">Colour %1$s.</string>
+    <string name="tint_color_hint">Colours the glass of icons, folders and widgets, as strongly as the tint above.</string>
+    <string name="tint_invalid">That is not a colour: use #RRGGBB.</string>
+
+    <!-- Home Screen: glass -->
+    <string name="group_glass">Glass</string>
+    <string name="group_glass_hint">The preview follows as you drag; the Home screen changes when you let go.</string>
+    <string name="glass_blur">Frost</string>
+    <string name="lens_amount">Refraction</string>
+    <string name="glass_rim">Edge Highlight</string>
+    <string name="glass_hairline">Edge Shadow</string>
+    <string name="group_where">Glass Under</string>
+    <string name="glass_folders">Folders</string>
+    <string name="glass_widgets">Widgets</string>
+    <string name="glass_search">Search Bar</string>
+    <string name="glass_search_sub">Grey glass in the Apps screen</string>
+    <string name="glass_drawer">Icons in the Apps Screen</string>
+    <string name="group_folder">Open Folders</string>
+    <string name="glass_folder_panel">Glass Background</string>
+    <string name="glass_open_folder">Glass Under Icons</string>
+    <string name="folder_morph">Grow from the Folder Icon</string>
+    <string name="group_widgets">Widgets</string>
+    <string name="widget_ios_corners">iPhone Corners</string>
+    <string name="widget_ios_corners_sub">Rounder, continuous widget corners</string>
+    <string name="gallery_look">Photo Widget</string>
+    <string name="gallery_look_full">Full Colour</string>
+    <string name="gallery_look_mono">Mono</string>
+    <string name="gallery_look_tinted">Tinted</string>
+    <string name="gallery_light">Tinted Photo Brightness</string>
+    <string name="gallery_spatial">Spatial Scene</string>
+    <string name="gallery_spatial_sub">The photo moves with the tilt of the phone</string>
+    <string name="gallery_hint">The photo widget settings apply to the Gallery and Google Photos widgets, and to Photo Tile.</string>
+    <string name="group_motion">Light and Motion</string>
+    <string name="glass_light">Highlight Follows Tilt</string>
+    <string name="glass_condense">Condense Animation</string>
+    <string name="glass_condense_sub">The lens swells, then settles, as the glass appears</string>
+    <string name="group_icons">Icons</string>
+    <string name="pack_peel">Remove Icon Packs\' Own Glass</string>
+    <string name="pack_peel_sub">For glass icon packs: keeps only the symbol</string>
+    <string name="hide_badges">Hide Secure Folder Badges</string>
+    <string name="icons_hint">Changing these restarts the Home screen.</string>
+    <string name="picture">Picture for the Glass</string>
+    <string name="picture_hint">Used when the wallpaper is live or cannot be read. Choose the same image as your wallpaper (for a live one, a frame of its video).</string>
+    <string name="picture_current">Picture</string>
+    <string name="picture_choose">Choose Photo…</string>
+    <string name="picture_remove">Remove Picture</string>
+    <string name="picture_none">None</string>
+    <string name="picture_set">Chosen</string>
+    <string name="picture_saving">Saving…</string>
+    <string name="picture_failed">Could not read that picture.</string>
+
+    <!-- Lock Screen -->
+    <string name="group_lock_notif">Notifications</string>
+    <string name="lock_notif_glass">Glass Cards</string>
+    <string name="lock_notif_bottom">At the Bottom</string>
+    <string name="lock_notif_pile">Stacked</string>
+    <string name="lock_notif_hint">Needs System UI enabled for OneGlass in LSPosed. Turning the glass cards on or off takes effect after a restart of the phone.</string>
+    <string name="group_card_look">Card Look</string>
+    <string name="lock_notif_style">Card style</string>
+    <string name="lock_notif_style_ios">iOS</string>
+    <string name="lock_notif_style_rim">Glass Rim</string>
+    <string name="lock_notif_radius">Corners</string>
+    <string name="lock_notif_shade">Milkiness</string>
+    <string name="lock_notif_blur">Blur</string>
+    <string name="lock_notif_refraction">Edge Refraction</string>
+    <string name="lock_notif_refraction_hint">With edge refraction above 0 the cards are drawn from the picture the Home screen sends; at 0 only the system blur is used.</string>
+    <string name="font">Notification Font</string>
+    <string name="font_hint">For the cards: the title semibold, the text regular, as on iOS. Choose a font file (.ttf or .otf) for each, or one variable font for both. The files stay on the phone.</string>
+    <string name="font_title">Title</string>
+    <string name="font_text">Text</string>
+    <string name="font_system">Use the System Font</string>
+    <string name="font_none">System</string>
+    <string name="font_failed">That file is not a font the system can read.</string>
+    <string name="lock_icons">Notification Icons</string>
+    <string name="lock_icons_hint">Coloured app icons on the notification cards, as on iOS: from an icon pack (one made for launchers such as Nova; it need not be applied) or the apps\' own. An icon can also be chosen for each app. The Home screen keeps its icons.</string>
+    <string name="lock_icons_pack">Icon Pack</string>
+    <string name="lock_icons_apps">Per App</string>
+    <string name="lock_icons_oneui">One UI\'s</string>
+    <string name="lock_icons_own">The Apps\' Own</string>
+    <string name="lock_icons_none_chosen">None</string>
+    <plurals name="lock_icons_chosen">
+        <item quantity="one">%1$d app</item>
+        <item quantity="other">%1$d apps</item>
+    </plurals>
+    <string name="lock_icons_no_packs">No icon pack is installed: install one made for launchers (Nova, Lawnchair, ADW…).</string>
+    <string name="lock_icons_default">Default (the pack\'s, else the app\'s own)</string>
+    <string name="lock_icons_app_own">The app\'s own icon</string>
+    <string name="lock_icons_app_oneui">One UI\'s icon</string>
+    <string name="lock_icons_from_pack">Choose from the pack…</string>
+    <string name="lock_icons_search">Search the pack\'s icons</string>
+    <string name="group_fingerprint">Fingerprint</string>
+    <string name="lock_hide_fp_icon">Hide the Fingerprint Icon</string>
+    <string name="lock_hide_fp_icon_hint">Also add One UI\'s biometrics app to OneGlass\' scope in LSPosed.</string>
+
+    <!-- Advanced -->
+    <string name="group_home">Home Screen Glass</string>
+    <string name="lens_height">Refraction Edge Width</string>
+    <string name="glass_saturation">Vibrancy</string>
+    <string name="lens_depth">Depth Effect</string>
+    <string name="lens_depth_sub">Rounder refraction towards the middle</string>
+    <string name="group_drawer">Apps Screen</string>
+    <string name="drawer_blur">Frost</string>
+    <string name="drawer_lens_height">Refraction Edge Width</string>
+    <string name="drawer_lens_amount">Refraction</string>
+    <string name="drawer_saturation">Vibrancy</string>
+    <string name="drawer_tint">Tint</string>
+    <string name="folder_blur">Icon Glass Frost</string>
+    <string name="folder_panel_tint">Background Tint</string>
+    <string name="folder_panel_lens">Background Refraction</string>
+    <string name="group_search">Search Bars</string>
+    <string name="search_gray">Grey</string>
+    <string name="search_blur">Frost</string>
+    <string name="search_saturation">Vibrancy</string>
+    <string name="search_lens">Refraction</string>
+    <string name="group_gallery">Photo Widget</string>
+    <string name="gallery_glare">Light Line</string>
+    <string name="group_card_rim">Lock Screen Card Rim</string>
+    <string name="card_rim_hint">For the Glass Rim card style.</string>
+    <string name="lock_notif_rim">Rim Intensity</string>
+    <string name="lock_notif_rim_color">Rim Colour</string>
+    <string name="lock_notif_rings">Rim Rings</string>
+    <string name="lock_notif_band">Ring Thickness</string>
+    <string name="lock_notif_corner_shadow">Fade at the Other Corners</string>
+    <string name="lock_notif_border">Coloured Border</string>
+    <string name="lock_notif_border_color">Border Colour</string>
+    <string name="rim_white">White</string>
+    <string name="rim_cool">Cool Blue</string>
+    <string name="rim_warm">Warm</string>
+    <string name="rim_lilac">Lilac</string>
+    <string name="rim_pink">Pink</string>
+    <string name="rim_mint">Mint</string>
+    <string name="glass_reset">Reset to Defaults</string>
+    <string name="glass_reset_confirm">Reset the glass settings?</string>
+    <string name="glass_reset_do">Reset</string>
+    <string name="glass_reset_hint">Restores every glass setting of the Home screen and the lock screen. Your picture, fonts and notification icons stay.</string>
+
+    <!-- Values -->
+    <string name="value_percent">%1$d%%</string>
+    <string name="value_dp">%1$s dp</string>
+    <string name="value_px">%1$d px</string>
+    <string name="value_times">%1$s×</string>
+    <string name="value_as_home">As Home Screen</string>
+
+    <!-- Backup -->
+    <string name="transfer_export">Export Settings…</string>
+    <string name="transfer_import">Import Settings…</string>
+    <string name="transfer_hint">All settings in a small text file, to keep or to move to another phone. Importing applies at once.</string>
+    <string name="transfer_exported">Exported.</string>
+    <string name="transfer_imported">Imported %1$d values.</string>
+    <string name="transfer_failed">Failed: %1$s</string>
+
+    <string-array name="xposed_scope">
+        <item>com.sec.android.app.launcher</item>
+        <item>com.android.systemui</item>
+        <item>com.samsung.android.biometrics.app.setting</item>
+    </string-array>
+    <string name="page_dock_grid">Dock and iOS 27 grid</string>
 </resources>
