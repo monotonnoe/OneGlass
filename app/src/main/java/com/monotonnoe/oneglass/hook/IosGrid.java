@@ -50,6 +50,8 @@ final class IosGrid {
     static final float WIDGET_OUTSET = 4f;
     static final float DOCK_X0 = 41f;
     static final float DOCK_PITCH = 86.33f;
+    /** Figma: dock icons' top (766pt in the 876pt frame, 1pt bezel). */
+    static final float DOCK_ICON_Y = 765f;
     static final int COLS = 4;
     static final int ROWS = 6;
 
@@ -238,7 +240,11 @@ final class IosGrid {
             }
             float dx = ICON_RECT.centerX();
             int l = Math.round(iconLeft + iconSize / 2f - dx);
-            v.layout(l, v.getTop(), l + v.getMeasuredWidth(), v.getTop() + v.getMeasuredHeight());
+            // Figma: dock icons' top at 765pt on the screen; kept inside the hotseat
+            int t = Math.round(DOCK_ICON_Y * pt - origin[1] - ICON_RECT.top);
+            int maxTop = parent.getHeight() - v.getMeasuredHeight();
+            t = maxTop >= 0 ? Math.max(0, Math.min(maxTop, t)) : v.getTop();
+            v.layout(l, t, l + v.getMeasuredWidth(), t + v.getMeasuredHeight());
         }
     }
 

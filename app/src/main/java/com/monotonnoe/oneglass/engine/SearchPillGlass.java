@@ -47,6 +47,7 @@ public final class SearchPillGlass {
     private static final Paint GLYPH_PAINT = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final RectF RECT = new RectF();
     private static final RectF TMP = new RectF();
+    private static final int[] LOC = new int[2];
 
     static {
         TEXT_PAINT.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
@@ -177,6 +178,14 @@ public final class SearchPillGlass {
         TMP.offset(indicator.getLeft() - host.getScrollX(), indicator.getTop() - host.getScrollY());
         float cx = TMP.centerX();
         float cy = TMP.centerY();
+        if (com.monotonnoe.oneglass.Config.current.iosGrid) {
+            // Figma: the pill's centre at 712pt on the screen, centred horizontally
+            host.getLocationOnScreen(LOC);
+            float fx = host.getRootView().getWidth() / 2f - LOC[0];
+            float fy = 712f * pt - LOC[1];
+            if (fx - w / 2f >= 0 && fx + w / 2f <= host.getWidth()) cx = fx;
+            cy = Math.max(h / 2f, Math.min(host.getHeight() - h / 2f, fy));
+        }
         RECT.set(cx - w / 2f, cy - h / 2f, cx + w / 2f, cy + h / 2f);
 
         canvas.save();
