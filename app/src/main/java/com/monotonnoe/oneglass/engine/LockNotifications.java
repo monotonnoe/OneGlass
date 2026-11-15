@@ -1535,7 +1535,7 @@ final class LockNotifications {
         int bottom = intOf(actualHeight, v, v.getHeight()) - intOf(clipBottom, v, 0);
         int width = intOf(actualWidth, v, v.getWidth());
         if (width <= 0) width = v.getWidth();
-        int left = v.isLayoutRtl() ? v.getWidth() - width : 0;
+        int left = (v.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) ? v.getWidth() - width : 0;
         // As iOS's cards, the glass hugs the content: One UI keeps a notification at least
         // 82 dp tall while a collapsed one's content is 72 dp, leaving an empty strip at the
         // bottom. The card ends where the content ends.
