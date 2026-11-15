@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OneGlass</string>
+    <string name="xposed_description">Liquid Glass (iOS 27) для рабочего стола One UI 8.5: стеклянный док, таблетка индикатора страниц, виджеты, папки и блики на иконках.</string>
+</resources>

@@ -1,0 +1,258 @@
+package com.monotonnoe.oneglass.glass;
+
+import android.app.WallpaperManager;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.BitmapShader;
+import android.graphics.Matrix;
+import android.graphics.Shader;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.ParcelFileDescriptor;
+import android.util.DisplayMetrics;
+import android.view.View;
+
+import com.monotonnoe.oneglass.Config;
+
+/**
+ * The launcher window is transparent: the wallpaper lives in its own surface underneath, so a
+ * view can not sample it. Instead the home wallpaper bitmap is loaded once, shrunk and frosted,
+ * and drawn through the glass with a matrix that keeps it glued to the display (and to the
+ * wallpaper scroll offset the launcher reports), exactly where the real wallpaper is.
+ */
+public final class Backdrop {
+
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+
+    private static volatile Bitmap blurred;
+    /** Size of the original wallpaper bitmap. */
+    private static volatile int fullW;
+    private static volatile int fullH;
+    /** small bitmap px = full px * k. */
+    private static volatile float k = 1f;
+    private static volatile float xOffset = 0.5f;
+    private static volatile float yOffset = 0.5f;
+    private static volatile int generation;
+
+    private static BitmapShader shader;
+    private static Bitmap shaderFor;
+    private static BitmapShader flat;
+
+    private static Context appContext;
+    private static boolean listening;
+    private static int loadedBlur = -1;
+    private static int pending;
+
+    private static final Matrix M = new Matrix();
+    private static final Matrix L = new Matrix();
+    private static final Matrix LINV = new Matrix();
+
+    private Backdrop() {
+    }
+
+    public static int generation() {
+        return generation;
+    }
+
+    public static float xOffset() {
+        return xOffset;
+    }
+
+    public static float yOffset() {
+        return yOffset;
+    }
+
+    public static void setOffsets(float x, float y) {
+        if (x >= 0f && x <= 1f) {
+            xOffset = x;
+        }
+        if (y >= 0f && y <= 1f) {
+            yOffset = y;
+        }
+    }
+
+    /** Starts loading (once) and keeps following wallpaper changes. Main thread. */
+    public static void ensure(Context context) {
+        if (appContext != null) {
+            return;
+        }
+        appContext = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        reload();
+        if (!listening) {
+            listening = true;
+            try {
+                WallpaperManager.getInstance(appContext).addOnColorsChangedListener(
+                        (colors, which) -> {
+                            if ((which & WallpaperManager.FLAG_SYSTEM) != 0) {
+                                reload();
+                            }
+                        }, MAIN);
+            } catch (Throwable t) {
+                Log.e("no wallpaper change listener", t);
+            }
+        }
+    }
+
+    /** Reloads if the frost amount changed. Main thread. */
+    public static void onConfigChanged() {
+        if (appContext != null && loadedBlur != Config.current.blur) {
+            reload();
+        }
+    }
+
+    /** Debounced reload on a worker thread. */
+    public static void reload() {
+        if (appContext == null) {
+            return;
+        }
+        final int ticket = ++pending;
+        MAIN.postDelayed(() -> {
+            if (ticket != pending) {
+                return;
+            }
+            final int blurDp = Config.current.blur;
+            new Thread(() -> load(blurDp), "OneGlass-backdrop").start();
+        }, 300);
+    }
+
+    private static void load(int blurDp) {
+        Context ctx = appContext;
+        Bitmap full = null;
+        try {
+            WallpaperManager wm = WallpaperManager.getInstance(ctx);
+            if (wm.getWallpaperInfo() != null) {
+                Log.i("live wallpaper: glass uses a neutral frosted fill");
+            } else {
+                full = readWallpaper(wm);
+            }
+        } catch (Throwable t) {
+            Log.e("wallpaper read failed", t);
+        }
+        Bitmap small = null;
+        int fw = 0, fh = 0;
+        float kk = 1f;
+        if (full != null) {
+            try {
+                if (full.getConfig() == Bitmap.Config.HARDWARE) {
+                    full = full.copy(Bitmap.Config.ARGB_8888, false);
+                }
+                fw = full.getWidth();
+                fh = full.getHeight();
+                DisplayMetrics dm = ctx.getResources().getDisplayMetrics();
+                int sw = Math.min(dm.widthPixels, dm.heightPixels);
+                int sh = Math.max(dm.widthPixels, dm.heightPixels);
+                float s = Math.max(sw / (float) fw, sh / (float) fh);
+                float blurPx = blurDp * dm.density;
+                // Shrink so the blur radius stays small (cheap) on the small bitmap.
+                float screenToSmall = blurDp <= 0 ? 0.5f : Math.min(0.25f, 8f / Math.max(1f, blurPx));
+                kk = s * screenToSmall;
+                int w = Math.max(16, Math.round(fw * kk));
+                int h = Math.max(16, Math.round(fh * kk));
+                kk = w / (float) fw;
+                Bitmap scaled = Bitmap.createScaledBitmap(full, w, h, true);
+                int r = Math.round(blurPx * screenToSmall);
+                small = BoxBlur.blur(scaled, Math.min(r, 24));
+            } catch (Throwable t) {
+                Log.e("wallpaper blur failed", t);
+                small = null;
+            }
+        }
+        final Bitmap result = small;
+        final int rw = fw, rh = fh;
+        final float rk = kk;
+        MAIN.post(() -> {
+            blurred = result;
+            fullW = rw;
+            fullH = rh;
+            k = rk;
+            loadedBlur = blurDp;
+            generation++;
+            Log.i(result != null
+                    ? "backdrop ready: wallpaper " + rw + "x" + rh + " -> " + result.getWidth() + "x" + result.getHeight()
+                    : "backdrop unavailable, glass uses a neutral frosted fill");
+            GlassTracker.refreshAll();
+        });
+    }
+
+    private static Bitmap readWallpaper(WallpaperManager wm) {
+        try {
+            Drawable d = wm.getDrawable(WallpaperManager.FLAG_SYSTEM);
+            if (d instanceof BitmapDrawable) {
+                Bitmap b = ((BitmapDrawable) d).getBitmap();
+                if (b != null) {
+                    return b;
+                }
+            }
+        } catch (Throwable t) {
+            Log.e("getDrawable(FLAG_SYSTEM)", t);
+        }
+        try {
+            Drawable d = wm.getDrawable();
+            if (d instanceof BitmapDrawable) {
+                Bitmap b = ((BitmapDrawable) d).getBitmap();
+                if (b != null) {
+                    return b;
+                }
+            }
+        } catch (Throwable t) {
+            Log.e("getDrawable()", t);
+        }
+        try (ParcelFileDescriptor pfd = wm.getWallpaperFile(WallpaperManager.FLAG_SYSTEM)) {
+            if (pfd != null) {
+                return BitmapFactory.decodeFileDescriptor(pfd.getFileDescriptor());
+            }
+        } catch (Throwable t) {
+            Log.e("getWallpaperFile", t);
+        }
+        return null;
+    }
+
+    /**
+     * A shader that paints the frosted wallpaper in {@code host}'s local coordinates.
+     * Main thread only; the returned object is shared and reconfigured on every call.
+     */
+    public static Shader shaderFor(View host) {
+        Bitmap b = blurred;
+        if (b == null || fullW <= 0 || fullH <= 0) {
+            return flat();
+        }
+        if (shader == null || shaderFor != b) {
+            shader = new BitmapShader(b, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            shader.setFilterMode(BitmapShader.FILTER_MODE_LINEAR);
+            shaderFor = b;
+        }
+        View root = host.getRootView();
+        int sw = root.getWidth();
+        int sh = root.getHeight();
+        if (sw <= 0 || sh <= 0) {
+            DisplayMetrics dm = host.getResources().getDisplayMetrics();
+            sw = dm.widthPixels;
+            sh = dm.heightPixels;
+        }
+        float s = Math.max(sw / (float) fullW, sh / (float) fullH);
+        float dx = (sw - fullW * s) * xOffset;
+        float dy = (sh - fullH * s) * yOffset;
+        // small bitmap -> display
+        M.setScale(s / k, s / k);
+        M.postTranslate(dx, dy);
+        // display -> host local
+        MatrixUtil.localToScreen(host, L);
+        if (L.invert(LINV)) {
+            M.postConcat(LINV);
+        }
+        shader.setLocalMatrix(M);
+        return shader;
+    }
+
+    private static Shader flat() {
+        if (flat == null) {
+            Bitmap one = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+            one.eraseColor(0x8C8C8C8C);
+            flat = new BitmapShader(one, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+        }
+        return flat;
+    }
+}
