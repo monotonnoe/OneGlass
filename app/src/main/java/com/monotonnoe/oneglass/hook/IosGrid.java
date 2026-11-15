@@ -158,8 +158,8 @@ final class IosGrid {
     }
 
     private static void place(View child, float[] origin, float pt) {
-        if (child.getVisibility() == View.GONE) {
-            return;
+        if (child.getVisibility() == View.GONE || child.getClass().getName().contains("Resiz")) {
+            return; // never fight a widget being resized
         }
         int[] cell = cellOf(child);
         if (cell == null) {
@@ -189,13 +189,13 @@ final class IosGrid {
             float iconLeft = (COL_X0 + COL_PITCH * cx) * pt - origin[0];
             float iconTop = (ROW_Y0 + ROW_PITCH * cy) * pt - origin[1];
             float iconSize = ICON * pt;
-            float dx = 0, dy = 0;
-            if (IconGeometry.find(child, ICON_RECT)) {
+            float dx, dy;
+            if (IconGeometry.iconIn(child, child, ICON_RECT)) {
+                // the icon square inside One UI's IconContainer
                 dx = ICON_RECT.centerX();
                 dy = ICON_RECT.centerY();
             } else {
-                dx = child.getWidth() / 2f;
-                dy = iconSize / 2f;
+                return; // unknown icon geometry: leave it where One UI put it
             }
             int l = Math.round(iconLeft + iconSize / 2f - dx);
             int t = Math.round(iconTop + iconSize / 2f - dy);
@@ -233,7 +233,10 @@ final class IosGrid {
             }
             float iconLeft = (first + DOCK_PITCH * i) * pt - origin[0];
             float iconSize = ICON * pt;
-            float dx = IconGeometry.find(v, ICON_RECT) ? ICON_RECT.centerX() : v.getWidth() / 2f;
+            if (!IconGeometry.iconIn(v, v, ICON_RECT)) {
+                continue;
+            }
+            float dx = ICON_RECT.centerX();
             int l = Math.round(iconLeft + iconSize / 2f - dx);
             v.layout(l, v.getTop(), l + v.getMeasuredWidth(), v.getTop() + v.getMeasuredHeight());
         }

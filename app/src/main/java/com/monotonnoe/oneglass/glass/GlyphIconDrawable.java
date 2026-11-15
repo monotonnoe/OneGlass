@@ -25,19 +25,15 @@ import com.monotonnoe.oneglass.Config;
  */
 public final class GlyphIconDrawable extends Drawable implements Drawable.Callback {
 
-    /** Decides whether a host view is on the (untouched) apps screen. */
-    public interface Place {
-        boolean appsScreen(View v);
-    }
-
-    public static Place place;
-
     private final Drawable original;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private Bitmap glyph;
     private int glyphKey;
     private final Rect glyphFor = new Rect();
     private int alpha = 255;
+    private final EdgeGlass edge = new EdgeGlass();
+    private final android.graphics.Matrix canvasMatrix = new android.graphics.Matrix();
+    private final android.graphics.RectF tileRect = new android.graphics.RectF();
 
     public GlyphIconDrawable(Drawable original) {
         this.original = original;
@@ -61,13 +57,28 @@ public final class GlyphIconDrawable extends Drawable implements Drawable.Callba
     public void draw(Canvas canvas) {
         Config cfg = Config.current;
         View host = host();
-        if (cfg.style == Config.STYLE_DEFAULT || host == null || (place != null && place.appsScreen(host))) {
+        Rect b = getBounds();
+        if (host == null || b.isEmpty() || !HomeScope.isHome(host)) {
             original.draw(canvas);
             return;
         }
-        Rect b = getBounds();
-        if (b.isEmpty()) {
+        if (cfg.style == Config.STYLE_DEFAULT) {
+            original.draw(canvas);
+            if (cfg.iconRim) {
+                try {
+                    edge.draw(canvas, host, original, b, alpha / 255f);
+                } catch (Throwable t) {
+                    Log.e("icon edge glass", t);
+                }
+            }
             return;
+        }
+        if (cfg.iconRim) {
+            try {
+                drawTile(canvas, host, b, cfg);
+            } catch (Throwable t) {
+                Log.e("icon tile glass", t);
+            }
         }
         int key = cfg.style * 31 + cfg.tintColor;
         if (glyph == null || key != glyphKey || !glyphFor.equals(b)) {
@@ -81,6 +92,24 @@ public final class GlyphIconDrawable extends Drawable implements Drawable.Callba
         } else {
             original.draw(canvas);
         }
+    }
+
+    /**
+     * Figma "Clear/Tinted App Icon" tile: GLASS over the wallpaper, under the symbol. Drawn right
+     * here in the icon's own canvas (like BlurIcons' icon wrapper), so it can not be replaced or
+     * misplaced by the launcher. The canvas matrix maps this drawable's space to the icon view.
+     */
+    @SuppressWarnings("deprecation")
+    private void drawTile(Canvas canvas, View host, Rect b, Config cfg) {
+        GlassTracker.trackHost(host);
+        canvasMatrix.reset();
+        // the icon view's own render node: its origin is the view's top-left, the recorded
+        // matrix (incl. the -scroll the view applies) maps this drawable's space onto it
+        canvas.getMatrix(canvasMatrix);
+        tileRect.set(b);
+        GlassSpec spec = GlassSpec.resolve(GlassSpec.ROLE_ICON_TILE, cfg, Units.pt(host),
+                GlassSpec.isDark(cfg, host.getResources()), tileRect);
+        GlassShader.draw(canvas, tileRect, spec, Backdrop.shaderFor(host, canvasMatrix), alpha / 255f);
     }
 
     private Bitmap render(int w, int h, int style, int tint) {
@@ -284,6 +313,7 @@ public final class GlyphIconDrawable extends Drawable implements Drawable.Callba
     @Override
     public void invalidateDrawable(Drawable who) {
         glyph = null;
+        edge.invalidate();
         invalidateSelf();
     }
 

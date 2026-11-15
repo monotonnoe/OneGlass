@@ -37,24 +37,37 @@ public final class IconGeometry {
         if (w <= 0 || h <= 0) {
             return false;
         }
-        String how;
-        Drawable best = null;
         lastDrawable = null;
+        String how;
         if (v instanceof TextView) {
-            Drawable top = ((TextView) v).getCompoundDrawables()[1];
+            TextView tv = (TextView) v;
+            Drawable top = tv.getCompoundDrawables()[1];
             if (top != null && !top.getBounds().isEmpty()) {
-                best = top;
+                // exactly where TextView#onDraw puts the top compound drawable (view coordinates)
+                Rect b = top.getBounds();
+                int cpl = tv.getCompoundPaddingLeft();
+                int cpr = tv.getCompoundPaddingRight();
+                float left = cpl + ((w - cpl - cpr) - b.width()) / 2f;
+                float t = tv.getPaddingTop();
+                out.set(left + b.left, t + b.top, left + b.right, t + b.bottom);
+                lastDrawable = top;
+                log(v, "compound top drawable", out, w, h);
+                return true;
+            }
+            float size = iconSize(tv);
+            if (size > 0) {
+                float left = (w - size) / 2f;
+                out.set(left, tv.getPaddingTop(), left + size, tv.getPaddingTop() + size);
+                log(v, "getIconSize()", out, w, h);
+                return true;
             }
         }
-        if (best == null) {
-            best = largestSquareField(v, w);
-        }
+        Drawable best = largestSquareField(v, w);
         if (best != null) {
             lastDrawable = best;
             Rect b = best.getBounds();
             out.set(b);
             if (b.left == 0 && b.top == 0 && b.width() < w - 2) {
-                // Drawn after a canvas translate: assume centred horizontally, under the top padding.
                 float l = (w - b.width()) / 2f;
                 out.offsetTo(l, v.getPaddingTop());
                 how = "drawable field (centred)";
@@ -69,11 +82,82 @@ public final class IconGeometry {
             out.set((w - side) / 2f, v.getPaddingTop(), (w + side) / 2f, v.getPaddingTop() + side);
             how = "heuristic";
         }
+        log(v, how, out, w, h);
+        return true;
+    }
+
+    /**
+     * The icon square of the first icon view (TextView) inside {@code container}, in the
+     * coordinates of {@code ancestor} (an ancestor of container, or container itself).
+     */
+    public static boolean iconIn(View container, View ancestor, RectF out) {
+        TextView tv = firstTextView(container, 0);
+        if (tv == null || !find(tv, out)) {
+            return false;
+        }
+        View cur = tv;
+        int guard = 0;
+        while (cur != ancestor && guard++ < 12) {
+            out.offset(cur.getX(), cur.getY());
+            android.view.ViewParent p = cur.getParent();
+            if (!(p instanceof View)) {
+                return false;
+            }
+            View pv = (View) p;
+            out.offset(-pv.getScrollX(), -pv.getScrollY());
+            cur = pv;
+        }
+        return cur == ancestor;
+    }
+
+    private static TextView firstTextView(View v, int depth) {
+        if (v instanceof TextView) {
+            return (TextView) v;
+        }
+        if (v instanceof android.view.ViewGroup && depth < 3) {
+            android.view.ViewGroup g = (android.view.ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                TextView t = firstTextView(g.getChildAt(i), depth + 1);
+                if (t != null) {
+                    return t;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static final Map<Class<?>, java.lang.reflect.Method> ICON_SIZE = new HashMap<>();
+
+    /** honeyspace icon views expose getIconSize() (BlurIcons uses it too). */
+    private static float iconSize(TextView v) {
+        Class<?> c = v.getClass();
+        java.lang.reflect.Method m;
+        if (ICON_SIZE.containsKey(c)) {
+            m = ICON_SIZE.get(c);
+        } else {
+            try {
+                m = c.getMethod("getIconSize");
+            } catch (Throwable t) {
+                m = null;
+            }
+            ICON_SIZE.put(c, m);
+        }
+        if (m == null) {
+            return -1f;
+        }
+        try {
+            Object r = m.invoke(v);
+            return r instanceof Number ? ((Number) r).floatValue() : -1f;
+        } catch (Throwable t) {
+            return -1f;
+        }
+    }
+
+    private static void log(View v, String how, RectF out, int w, int h) {
         if (LOGGED.add(v.getClass())) {
             Log.i("icon geometry for " + v.getClass().getName() + ": " + how + " " + out.toShortString()
                     + " in " + w + "x" + h);
         }
-        return true;
     }
 
     private static Drawable largestSquareField(View v, int viewW) {

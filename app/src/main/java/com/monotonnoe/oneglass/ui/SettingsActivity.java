@@ -102,6 +102,33 @@ public final class SettingsActivity extends Activity {
         plp.bottomMargin = dp(8);
         list.addView(preview, plp);
 
+        section("Картинка под стеклом");
+        TextView picInfo = new TextView(this);
+        boolean hasPic = PictureProvider.file(this).isFile();
+        picInfo.setText((hasPic ? "Картинка выбрана. " : "Картинка не выбрана. ")
+                + "С живыми обоями лаунчер не может прочитать изображение — выберите ту же картинку, "
+                + "что стоит на обоях, иначе стекло будет серым. Если она уже выбрана в BlurIcons, она используется автоматически.");
+        picInfo.setTextSize(13);
+        picInfo.setAlpha(0.75f);
+        list.addView(picInfo);
+        Button pick = new Button(this);
+        pick.setText(hasPic ? "Заменить картинку обоев" : "Выбрать картинку обоев");
+        pick.setOnClickListener(v -> {
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("image/*");
+            startActivityForResult(i, PICK_PICTURE);
+        });
+        list.addView(pick);
+
+        TextView conflicts = new TextView(this);
+        conflicts.setText("Для One UI Home отключите в LSPosed модули, которые рисуют то же самое: BlurIcons, "
+                + "SquareWidgets (если включена «Сетка iOS 27»). SearchPill определяется автоматически — тогда своя таблетка не рисуется.");
+        conflicts.setTextSize(13);
+        conflicts.setAlpha(0.75f);
+        conflicts.setPadding(0, dp(10), 0, 0);
+        list.addView(conflicts);
+
         section("Где стекло");
         toggle("Сетка iOS 27", "Иконки, виджеты и док по сетке макета: иконки 60 pt, шаг 90×97.8, виджеты 158/338. В One UI выберите сетку 4×6",
                 new BoolProp() {
@@ -370,6 +397,62 @@ public final class SettingsActivity extends Activity {
         SharedPreferences.Editor e = prefs.edit();
         config.write(e);
         e.commit();
+    }
+
+    private static final int PICK_PICTURE = 7;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PICK_PICTURE || resultCode != RESULT_OK || data == null || data.getData() == null) {
+            return;
+        }
+        final android.net.Uri uri = data.getData();
+        new Thread(() -> {
+            boolean ok = savePicture(uri);
+            handler.post(() -> {
+                Toast.makeText(this, ok ? "Картинка сохранена, лаунчер обновит стекло"
+                        : "Не удалось прочитать картинку", Toast.LENGTH_LONG).show();
+                if (ok) {
+                    sendBroadcast(new Intent(Config.ACTION_RELOAD).setPackage(Config.LAUNCHER).putExtra("picture", true));
+                    recreate();
+                }
+            });
+        }).start();
+    }
+
+    /** Stores the picture (at most screen size) for the launcher's PictureProvider reads. */
+    private boolean savePicture(android.net.Uri uri) {
+        try {
+            android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
+                android.graphics.BitmapFactory.decodeStream(in, null, o);
+            }
+            int longSide = Math.max(getResources().getDisplayMetrics().widthPixels,
+                    getResources().getDisplayMetrics().heightPixels);
+            int sample = 1;
+            while (Math.max(o.outWidth, o.outHeight) / (sample * 2) >= longSide) {
+                sample *= 2;
+            }
+            android.graphics.BitmapFactory.Options o2 = new android.graphics.BitmapFactory.Options();
+            o2.inSampleSize = sample;
+            android.graphics.Bitmap b;
+            try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
+                b = android.graphics.BitmapFactory.decodeStream(in, null, o2);
+            }
+            if (b == null) {
+                return false;
+            }
+            java.io.File tmp = new java.io.File(getFilesDir(), PictureProvider.FILE + ".tmp");
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(tmp)) {
+                b.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, out);
+            }
+            return tmp.renameTo(PictureProvider.file(this));
+        } catch (Throwable t) {
+            android.util.Log.e("OneGlass", "picture", t);
+            return false;
+        }
     }
 
     private void pushToLauncher() {

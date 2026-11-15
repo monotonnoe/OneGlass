@@ -26,7 +26,7 @@ import com.monotonnoe.oneglass.glass.GlassDrawable;
 import com.monotonnoe.oneglass.glass.GlassSpec;
 import com.monotonnoe.oneglass.glass.GlassTracker;
 import com.monotonnoe.oneglass.glass.GlyphIconDrawable;
-import com.monotonnoe.oneglass.glass.IconRimDrawable;
+import com.monotonnoe.oneglass.glass.HomeScope;
 import com.monotonnoe.oneglass.glass.Log;
 import com.monotonnoe.oneglass.glass.Units;
 
@@ -41,10 +41,13 @@ import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedHelpers;
 
 /**
- * One UI Home ("honeyspace") hooks. Instead of hooking each launcher class' drawing methods
- * (their names change between One UI builds), a single hook on View#onAttachedToWindow spots
- * the views we care about by class name and decorates them with public APIs: a glass
- * background, a view overlay, an outline clip.
+ * One UI Home ("honeyspace") hooks, using the same integration points as BlurIcons:
+ *  - icons: the drawable set through IconViewImpl#setCompoundDrawable is wrapped, and the glass
+ *    is drawn by that wrapper in the icon's own canvas (exact bounds, nothing to overwrite),
+ *  - folder icons: glass drawn before IconViewImpl#onDraw,
+ *  - dock, widgets, search pill: glass drawn by the parent's dispatchDraw before its children,
+ *  - open folder panel: its background is replaced by glass and kept on setBackgroundDrawable.
+ * A hook on View#onAttachedToWindow finds the views by class name. The apps screen is untouched.
  *
  * Class names below are the ones One UI 7 / 8 / 8.5 use.
  */
@@ -62,7 +65,6 @@ public final class LauncherHooks {
     private static final int K_WIDGET = 4;
     private static final int K_INDICATOR = 5;
     private static final int K_PAGE = 6;
-    private static final int K_FOLDER_PANEL = 7;
 
     private static final Map<Class<?>, Integer> KINDS = new HashMap<>();
     private static final Set<View> DONE = Collections.newSetFromMap(new WeakHashMap<>());
@@ -100,7 +102,8 @@ public final class LauncherHooks {
                 });
 
         hookIconDrawables(cl);
-        GlyphIconDrawable.place = LauncherHooks::inAppsScreen;
+        hookFolderIcons(cl);
+        FolderPanels.hookBackgrounds();
 
         Log.i("hooked One UI Home; hotseat class "
                 + (XposedHelpers.findClassIfExists(HOTSEAT, cl) != null ? "found" : "MISSING")
@@ -181,7 +184,12 @@ public final class LauncherHooks {
                 @Override
                 public void onReceive(Context c, Intent intent) {
                     loadConfig();
-                    Backdrop.onConfigChanged();
+                    if (intent.getBooleanExtra("picture", false)) {
+                        Backdrop.reload();
+                    } else {
+                        Backdrop.onConfigChanged();
+                    }
+                    applyWidgetClips();
                     GlassTracker.refreshAll();
                     Log.i("settings reloaded");
                 }
@@ -201,62 +209,56 @@ public final class LauncherHooks {
             final View root = v;
             MAIN.postDelayed(() -> Diagnostics.dump(root), 4000);
         }
+        if (!Shapes.otherPill && v.getClass().getName().startsWith("dev.flexy.searchpill.")) {
+            // SearchPill already adds an iOS search pill: do not draw a second one
+            Shapes.otherPill = true;
+            Log.i("SearchPill module detected: OneGlass' own pill is off");
+            GlassTracker.refreshAll();
+        }
         int kind = kindOf(v.getClass());
-        if (kind == K_NONE) {
+        if (kind == K_NONE || !DONE.add(v)) {
             return;
         }
-        // The One UI apps screen stays stock: nothing inside it is touched.
-        if (kind != K_PAGE && kind != K_HOTSEAT && inAppsScreen(v)) {
-            return;
-        }
-        if (!DONE.add(v)) {
-            return;
-        }
+        ViewParent p = v.getParent();
         switch (kind) {
             case K_HOTSEAT:
                 IosGrid.hookLayout(v.getClass(), true);
-                applyDock(v);
-                v.requestLayout();
+                if (p instanceof ViewGroup) {
+                    GlassHosts.add((ViewGroup) p, new GlassDrawable(GlassSpec.ROLE_DOCK, new Shapes.Hotseat(v)));
+                    Log.i("dock glass drawn by " + p.getClass().getName());
+                }
+                if (Config.current.iosGrid) {
+                    v.requestLayout();
+                }
                 break;
             case K_PAGE:
                 IosGrid.hookLayout(v.getClass(), false);
-                v.requestLayout();
-                break;
-            case K_FOLDER_PANEL:
-                applyBackground(v, new GlassDrawable(GlassSpec.ROLE_FOLDER_PANEL, Shapes.PANEL));
+                if (Config.current.iosGrid) {
+                    v.requestLayout();
+                }
                 break;
             case K_WIDGET:
-                applyWidget(v);
+                if (HomeScope.isHome(v) && p instanceof ViewGroup) {
+                    GlassHosts.add((ViewGroup) p, new GlassDrawable(GlassSpec.ROLE_WIDGET, new Shapes.Child(v, false)));
+                    applyWidgetClip(v);
+                } else {
+                    DONE.remove(v);
+                }
                 break;
             case K_INDICATOR:
-                applyBackground(v, new GlassDrawable(GlassSpec.ROLE_PILL, Shapes.PILL));
-                break;
-            case K_FOLDER_ICON:
-                applyBackground(v, new GlassDrawable(GlassSpec.ROLE_FOLDER, Shapes.ICON));
-                applyRim(v);
+                if (!HomeScope.inAppsScreen(v) && p instanceof ViewGroup) {
+                    GlassHosts.add((ViewGroup) p, new GlassDrawable(GlassSpec.ROLE_PILL, new Shapes.Child(v, true)));
+                }
                 break;
             case K_ICON:
-                applyBackground(v, new GlassDrawable(GlassSpec.ROLE_ICON_TILE, Shapes.ICON));
-                applyRim(v);
+                // glass is drawn by the icon's drawable wrapper; icons inside an open folder
+                // lead us to the folder panel
+                FolderPanels.onIcon(v);
+                DONE.remove(v);
                 break;
             default:
                 break;
         }
-    }
-
-    /** True for views on the One UI apps screen (app drawer). */
-    static boolean inAppsScreen(View v) {
-        ViewParent p = v.getParent();
-        int guard = 0;
-        while (p instanceof View && guard++ < 40) {
-            String n = p.getClass().getName();
-            if (n.contains(".applist.") || n.contains("Applist") || n.contains("AppsList")
-                    || n.contains("AppScreen") || n.contains(".appscreen.")) {
-                return true;
-            }
-            p = p.getParent();
-        }
-        return false;
     }
 
     private static int kindOf(Class<?> cls) {
@@ -277,13 +279,8 @@ public final class LauncherHooks {
                 kind = K_ICON;
             } else if (c == AppWidgetHostView.class) {
                 kind = K_WIDGET;
-            } else if (n.startsWith("com.honeyspace.") && c.getSimpleName().contains("PageIndicator")) {
+            } else if (n.startsWith("com.honeyspace.") && c.getSimpleName().equals("PageIndicatorView")) {
                 kind = K_INDICATOR;
-            } else if (n.startsWith("com.honeyspace.") && c.getSimpleName().contains("Folder")
-                    && !c.getSimpleName().contains("Icon") && ViewGroup.class.isAssignableFrom(c)
-                    && (c.getSimpleName().contains("Container") || c.getSimpleName().contains("Panel")
-                    || c.getSimpleName().endsWith("FolderView"))) {
-                kind = K_FOLDER_PANEL;
             }
             if (kind != K_NONE) {
                 break;
@@ -296,37 +293,37 @@ public final class LauncherHooks {
         return kind;
     }
 
-    private static void applyBackground(View v, GlassDrawable glass) {
-        Drawable old = v.getBackground();
-        if (old instanceof GlassDrawable) {
-            return;
+    /** Folder icons: glass drawn right before the icon draws itself (BlurIcons: same hook). */
+    private static void hookFolderIcons(ClassLoader cl) {
+        Class<?> folder = XposedHelpers.findClassIfExists(FOLDER_ICON, cl);
+        Class<?> icon = XposedHelpers.findClassIfExists(ICON, cl);
+        XC_MethodHook hook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                if (param.args.length == 1 && param.args[0] instanceof android.graphics.Canvas
+                        && param.thisObject.getClass().getSimpleName().startsWith("FolderIcon")) {
+                    try {
+                        FolderPanels.drawFolderIcon((View) param.thisObject, (android.graphics.Canvas) param.args[0]);
+                    } catch (Throwable t) {
+                        Log.e("folder icon glass", t);
+                    }
+                }
+            }
+        };
+        java.util.Set<XC_MethodHook.Unhook> h = folder == null ? null
+                : de.robv.android.xposed.XposedBridge.hookAllMethods(folder, "onDraw", hook);
+        String on = folder == null ? "-" : folder.getName();
+        if ((h == null || h.isEmpty()) && icon != null) {
+            h = de.robv.android.xposed.XposedBridge.hookAllMethods(icon, "onDraw", hook);
+            on = icon.getName();
         }
-        if (old == null) {
-            v.setBackground(glass);
-        } else {
-            v.setBackground(new LayerDrawable(new Drawable[]{glass, old}));
-        }
-        GlassTracker.track(v, glass);
+        Log.i("folder icon glass hooks: " + (h == null ? 0 : h.size()) + " on " + on);
     }
 
-    private static void applyDock(View hotseat) {
-        ViewParent p = hotseat.getParent();
-        if (!(p instanceof ViewGroup)) {
-            Log.i("hotseat has no parent yet");
-            DONE.remove(hotseat);
-            return;
-        }
-        ViewGroup parent = (ViewGroup) p;
-        if (DONE.contains(parent) && parent.getBackground() != null) {
-            return;
-        }
-        DONE.add(parent);
-        applyBackground(parent, new GlassDrawable(GlassSpec.ROLE_DOCK, new Shapes.Hotseat(hotseat)));
-        Log.i("dock glass on " + parent.getClass().getName());
-    }
+    private static final Set<View> WIDGETS = Collections.newSetFromMap(new WeakHashMap<>());
 
-    private static void applyWidget(final View host) {
-        applyBackground(host, new GlassDrawable(GlassSpec.ROLE_WIDGET, Shapes.FILL));
+    private static void applyWidgetClip(final View host) {
+        WIDGETS.add(host);
         final Path path = new Path();
         final RectF r = new RectF();
         final ViewOutlineProvider stock = host.getOutlineProvider();
@@ -340,9 +337,10 @@ public final class LauncherHooks {
                     }
                     return;
                 }
-                float dp = Units.pt(view);
-                r.set(0, 0, view.getWidth(), view.getHeight());
-                ContinuousPath.build(path, r, c.widgetRadius * dp, ContinuousPath.IOS_SMOOTHING);
+                float pt = Units.pt(view);
+                r.set(view.getPaddingLeft(), view.getPaddingTop(),
+                        view.getWidth() - view.getPaddingRight(), view.getHeight() - view.getPaddingBottom());
+                ContinuousPath.build(path, r, c.widgetRadius * pt, ContinuousPath.IOS_SMOOTHING);
                 outline.setPath(path);
             }
         });
@@ -351,11 +349,13 @@ public final class LauncherHooks {
         host.invalidateOutline();
     }
 
-    private static void applyRim(final View v) {
-        final IconRimDrawable rim = new IconRimDrawable(v);
-        rim.setBounds(0, 0, v.getWidth(), v.getHeight());
-        v.getOverlay().add(rim);
-        v.addOnLayoutChangeListener((view, l, t, r, b, ol, ot, or, ob) ->
-                rim.setBounds(0, 0, r - l, b - t));
+    private static void applyWidgetClips() {
+        Config c = Config.current;
+        for (View w : WIDGETS) {
+            if (w != null) {
+                w.setClipToOutline(c.widgets && c.widgetClip);
+                w.invalidateOutline();
+            }
+        }
     }
 }

@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- lets the launcher see our picture provider (package visibility) -->
+    <queries>
+        <package android:name="com.sec.android.app.launcher" />
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
@@ -14,6 +19,11 @@
         <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
         <!-- Lets the launcher read our settings through XSharedPreferences -->
         <meta-data android:name="xposedsharedprefs" android:value="true" />
+
+        <provider
+            android:name=".ui.PictureProvider"
+            android:authorities="com.monotonnoe.oneglass.picture"
+            android:exported="true" />
 
         <activity
             android:name=".ui.SettingsActivity"

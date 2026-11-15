@@ -54,8 +54,16 @@ public final class GlassTracker {
         observe(host);
     }
 
+    /** Tracks a view whose own drawing samples the backdrop (icons, folder icons). */
+    public static void trackHost(View host) {
+        if (!HOSTS.containsKey(host)) {
+            HOSTS.put(host, new Entry());
+        }
+        observe(host);
+    }
+
     /** Called from draw(): remembers what was painted. */
-    static void drawn(View host) {
+    public static void drawn(View host) {
         Entry e = HOSTS.get(host);
         if (e == null) {
             return;
@@ -113,11 +121,6 @@ public final class GlassTracker {
                 continue;
             }
             for (GlassDrawable d : me.getValue().glass) {
-                if (d.role == GlassSpec.ROLE_WIDGET) {
-                    Config c = Config.current;
-                    host.setClipToOutline(c.widgets && c.widgetClip);
-                    host.invalidateOutline();
-                }
                 d.invalidateSelf();
             }
             host.invalidate();

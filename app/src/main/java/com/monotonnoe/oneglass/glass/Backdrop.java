@@ -81,6 +81,18 @@ public final class Backdrop {
         }
         appContext = context.getApplicationContext() != null ? context.getApplicationContext() : context;
         reload();
+        try {
+            // pictures in credential-encrypted storage (ours, BlurIcons') appear after the unlock
+            appContext.registerReceiver(new android.content.BroadcastReceiver() {
+                @Override
+                public void onReceive(Context c, android.content.Intent i) {
+                    attempts = 0;
+                    reload();
+                }
+            }, new android.content.IntentFilter(android.content.Intent.ACTION_USER_UNLOCKED), Context.RECEIVER_EXPORTED);
+        } catch (Throwable t) {
+            Log.e("unlock receiver", t);
+        }
         if (!listening) {
             listening = true;
             try {
@@ -119,18 +131,41 @@ public final class Backdrop {
         }, 300);
     }
 
+    /** Picture chosen in OneGlass for live wallpapers (served by its PictureProvider). */
+    public static final android.net.Uri PICTURE_URI =
+            android.net.Uri.parse("content://com.monotonnoe.oneglass.picture/picture");
+    /** BlurIcons keeps the same kind of picture; reused when OneGlass has none. */
+    private static final android.net.Uri BLURICONS_PICTURE_URI =
+            android.net.Uri.parse("content://dev.flexy.bluricons.settings/picture");
+
+    private static int attempts;
+
     private static void load(int blurKey, float frostDp) {
         Context ctx = appContext;
         Bitmap full = null;
+        boolean live = false;
         try {
             WallpaperManager wm = WallpaperManager.getInstance(ctx);
-            if (wm.getWallpaperInfo() != null) {
-                Log.i("live wallpaper: glass uses a neutral frosted fill");
-            } else {
+            live = wm.getWallpaperInfo() != null;
+            if (!live) {
                 full = readWallpaper(wm);
             }
         } catch (Throwable t) {
             Log.e("wallpaper read failed", t);
+        }
+        if (full == null) {
+            // live wallpaper (or no access to the image): use the picture the user picked
+            full = readPicture(ctx, PICTURE_URI, "OneGlass");
+            if (full == null) {
+                full = readPicture(ctx, BLURICONS_PICTURE_URI, "BlurIcons");
+            }
+            if (full == null) {
+                Log.i(live ? "live wallpaper and no picture chosen in OneGlass yet: glass uses a neutral fill"
+                        : "wallpaper unreadable and no picture chosen: glass uses a neutral fill");
+                if (attempts++ < 6) {
+                    MAIN.postDelayed(Backdrop::reload, 5000);
+                }
+            }
         }
         Bitmap small = null;
         int fw = 0, fh = 0;
@@ -181,6 +216,40 @@ public final class Backdrop {
         });
     }
 
+    private static Bitmap readPicture(Context ctx, android.net.Uri uri, String from) {
+        try {
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            try (java.io.InputStream in = ctx.getContentResolver().openInputStream(uri)) {
+                if (in == null) {
+                    return null;
+                }
+                BitmapFactory.decodeStream(in, null, o);
+            }
+            if (o.outWidth <= 0 || o.outHeight <= 0) {
+                return null;
+            }
+            DisplayMetrics dm = ctx.getResources().getDisplayMetrics();
+            int target = Math.max(dm.widthPixels, dm.heightPixels);
+            int sample = 1;
+            while (Math.max(o.outWidth, o.outHeight) / (sample * 2) >= target / 2) {
+                sample *= 2;
+            }
+            BitmapFactory.Options o2 = new BitmapFactory.Options();
+            o2.inSampleSize = sample;
+            try (java.io.InputStream in = ctx.getContentResolver().openInputStream(uri)) {
+                Bitmap b = in == null ? null : BitmapFactory.decodeStream(in, null, o2);
+                if (b != null) {
+                    Log.i("backdrop picture from " + from + ": " + b.getWidth() + "x" + b.getHeight());
+                }
+                return b;
+            }
+        } catch (Throwable t) {
+            Log.i("no picture from " + from + ": " + t.getClass().getSimpleName() + " " + t.getMessage());
+            return null;
+        }
+    }
+
     private static Bitmap readWallpaper(WallpaperManager wm) {
         try {
             Drawable d = wm.getDrawable(WallpaperManager.FLAG_SYSTEM);
@@ -211,6 +280,17 @@ public final class Backdrop {
         } catch (Throwable t) {
             Log.e("getWallpaperFile", t);
         }
+        try {
+            // hidden WallpaperManager#getBitmap(), as BlurIcons' last resort
+            java.lang.reflect.Method m = WallpaperManager.class.getDeclaredMethod("getBitmap");
+            m.setAccessible(true);
+            Object b = m.invoke(wm);
+            if (b instanceof Bitmap) {
+                return (Bitmap) b;
+            }
+        } catch (Throwable t) {
+            Log.i("getBitmap(): " + t.getClass().getSimpleName());
+        }
         return null;
     }
 
@@ -219,6 +299,14 @@ public final class Backdrop {
      * Main thread only; the returned object is shared and reconfigured on every call.
      */
     public static Shader shaderFor(View host) {
+        return shaderFor(host, null);
+    }
+
+    /**
+     * @param canvasToHost when drawing in a canvas that is not in {@code host}'s own coordinates
+     *                     (e.g. inside a drawable), maps that canvas to the host's coordinates
+     */
+    public static Shader shaderFor(View host, Matrix canvasToHost) {
         Bitmap b = blurred;
         if (b == null || fullW <= 0 || fullH <= 0) {
             return flat();
@@ -245,6 +333,9 @@ public final class Backdrop {
         // display -> host local
         MatrixUtil.localToScreen(host, L);
         if (L.invert(LINV)) {
+            M.postConcat(LINV);
+        }
+        if (canvasToHost != null && canvasToHost.invert(LINV)) {
             M.postConcat(LINV);
         }
         shader.setLocalMatrix(M);
