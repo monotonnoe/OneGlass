@@ -39,20 +39,25 @@ public final class GlassSpec {
     public static final float M_LINEAR_DODGE = 6f;
 
     // ---- GLASS optics, fitted to Figma's render (values in pt; 1pt = 1dp) ----
-    public static final float FROST = 0.6f;
-    public static final float REFRACTION_HEIGHT = 14f;
-    public static final float REFRACTION_AMOUNT = -16f;
-    public static final float DEPTH = 0.25f;
-    public static final float DISPERSION = 0.5f;
-    public static final float SATURATION = 1.5f;
+    // Fitted to Figma's render of Playground "Home Screen Layout" 3566:115254 (Dark, Tinted)
+    // against the source wallpaper converted P3 -> sRGB; mean squared error 0.0011 per pixel.
+    /** Gaussian sigma of the frost, pt. */
+    public static final float FROST = 1.19f;
+    public static final float REFRACTION_HEIGHT = 36.4f;
+    /** Negative: the edge samples towards the centre (magnifying rim), as in Kyant's lens(). */
+    public static final float REFRACTION_AMOUNT = -6.84f;
+    public static final float DEPTH = 0.133f;
+    /** Content magnification (sample = centre + offset * ZOOM). */
+    public static final float ZOOM = 0.972f;
+    public static final float DISPERSION = 0f;
+    public static final float SATURATION = 1f;
     public static final float BRIGHTNESS = 0f;
-    public static final float LIGHT = 0.3f;
-    public static final float LIGHT_WIDTH = 0.6f;
-    public static final float LIGHT_SOFTNESS = 0.3f;
-    public static final float LIGHT_ANGLE = 45f;
-    public static final float LIGHT_FALLOFF = 1f;
-    public static final float CORNER_POW = 2.6f;
-    public static final float ZOOM = 1f;
+    public static final float LIGHT = 0.324f;
+    public static final float LIGHT_WIDTH = 0.2f;
+    public static final float LIGHT_SOFTNESS = 0.5f;
+    public static final float LIGHT_ANGLE = 90f;
+    public static final float LIGHT_FALLOFF = 2.87f;
+    public static final float CORNER_POW = 2f;
 
     public float radius;
     public float cornerPow;
@@ -149,7 +154,8 @@ public final class GlassSpec {
         s.refractionAmount = REFRACTION_AMOUNT * dp * kRefr;
         s.depth = DEPTH;
         s.zoom = role == ROLE_ICON ? 1f : ZOOM;
-        s.dispersion = DISPERSION * cfg.dispersion / 100f;
+        // Figma shows no measurable dispersion; above 100% the slider adds Kyant's chromatic aberration.
+        s.dispersion = DISPERSION + Math.max(0, cfg.dispersion - 100) / 100f;
         s.saturation = SATURATION;
         s.brightness = BRIGHTNESS;
         float kLight = cfg.rim / 100f;
