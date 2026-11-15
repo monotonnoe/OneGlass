@@ -103,6 +103,26 @@ public final class SettingsActivity extends Activity {
             public int get(Config c) { return c.dockPadV; }
             public void set(Config c, int v) { c.dockPadV = v; }
         });
+        toggle("Форма иконок iOS", "Непрерывные скругления Apple: радиус 15.5 из 60 pt, сглаживание 60% (Figma); стекло под иконкой той же формы",
+                new BoolProp() {
+                    public boolean get(Config c) { return c.iosIcons; }
+                    public void set(Config c, boolean v) { c.iosIcons = v; }
+                });
+        toggle("Размер иконок iOS", "60 pt, как на iPhone",
+                new BoolProp() {
+                    public boolean get(Config c) { return c.iosIconSize; }
+                    public void set(Config c, boolean v) { c.iosIconSize = v; }
+                });
+        toggle("Подписи iOS", "12 pt Medium, белые 90%, мягкая тень",
+                new BoolProp() {
+                    public boolean get(Config c) { return c.iosLabels; }
+                    public void set(Config c, boolean v) { c.iosLabels = v; }
+                });
+        toggle("Таблетка «Поиск»", "Стеклянная таблетка iOS 27 вместо точек страниц (выключается сама, если включён SearchPill)",
+                new BoolProp() {
+                    public boolean get(Config c) { return c.pill; }
+                    public void set(Config c, boolean v) { c.pill = v; }
+                });
         toggle("Сетка iOS 27", "Иконки 60 pt с шагом 90×97.8 pt, виджеты 158/338 pt. В One UI выберите сетку 4×6 "
                         + "и отключите SquareWidgets, иначе модули будут спорить за расположение",
                 new BoolProp() {

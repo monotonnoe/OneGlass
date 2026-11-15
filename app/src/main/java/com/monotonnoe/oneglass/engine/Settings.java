@@ -71,7 +71,8 @@ final class Settings {
             "lock_notif_corner_shadow", "lock_notif_border", "lock_notif_border_color",
             "lock_notif_bottom", "lock_hide_fp_icon", "lock_notif_pile", "glass_light",
             "glass_condense", "folder_morph", "clock_ios26", "clock_font"};
-    static final int[] GLASS_DEFAULTS = {1, 22, 40, 150, 1, 1, 1, 1, 30, 1, 39, 1, 163, 10, 1, 95, 20, 14, 5, 22, 40, 150, 0, 0, 30, 1, 20, 6, 51, 35, 40, 1, 100, 50, 1, 49, 93, 58, 14, 2, 1, 150, 0, 1, 0, 1, 24, 15, 6, 50, 0, 0, 60, 0, 1, 0, 1, 8, 30, 0, 3, 1, 1, 1, 0, 1, 1, 1, 0};
+    // OneGlass: lens height / amount from the Figma fit (was 22 / 40 in BlurIcons)
+    static final int[] GLASS_DEFAULTS = {1, 50, 11, 150, 1, 1, 1, 1, 30, 1, 39, 1, 163, 10, 1, 95, 20, 14, 5, 50, 11, 150, 0, 0, 30, 1, 20, 6, 51, 35, 40, 1, 100, 50, 1, 49, 93, 58, 14, 2, 1, 150, 0, 1, 0, 1, 24, 15, 6, 50, 0, 0, 60, 0, 1, 0, 1, 8, 30, 0, 3, 1, 1, 1, 0, 1, 1, 1, 0};
     static final int[] GLASS_MIN = {0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     static final int[] GLASS_MAX = {20, 50, 100, 250, 1, 1, 1, 1, 60, 1, 100, 1, 200, 100, 40, 200, 100, 80, 150, 50, 100, 250, 100, 1, 60, 1, 100, 30, 60, 150, 100, 1, 100, 100, 1, 100, 100, 100, 100, 2, 1, 400, 1, 1, 1, 1, 30, 40, 60, 100, 100, 100, 100, 100, 1, 5, 6, 20, 30, 30, 5, 1, 1, 1, 100, 1, 1, 1, 1};
     static final int GLASS_BLUR = 0;
@@ -524,8 +525,7 @@ final class Settings {
         Config.lensDepth = glass[LENS_DEPTH] != 0;
         Config.glassFolders = glass[GLASS_FOLDERS] != 0;
         Config.glassWidgets = glass[GLASS_WIDGETS] != 0;
-        // OneGlass: the One UI apps screen always stays stock.
-        Config.drawer = false;
+        Config.drawer = glass[GLASS_DRAWER] != 0;
         Config.drawerBlur = glass[DRAWER_BLUR] / 100f;
         Config.glassSearch = glass[GLASS_SEARCH] != 0;
         Config.searchGray = glass[SEARCH_GRAY] / 100f;

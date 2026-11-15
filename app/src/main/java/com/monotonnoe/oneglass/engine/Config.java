@@ -30,7 +30,7 @@ final class Config {
     static boolean glassIcons = false;
     static boolean blur = true;
     /** Also blur behind icons in the Apps screen (its own background already dims the wallpaper). */
-    static boolean drawer = false; // OneGlass: the apps screen stays stock
+    static boolean drawer = true;
 
     static int blurRadius = 150;
     /**
@@ -176,7 +176,7 @@ final class Config {
         }
         glassIcons = bool(p, "glass_icons", glassIcons);
         blur = bool(p, "blur", blur);
-        drawer = false;
+        drawer = bool(p, "drawer", drawer);
         blurRadius = integer(p, "blur_radius", blurRadius);
         corner = number(p, "corner", corner);
         blurInset = number(p, "blur_inset", blurInset);

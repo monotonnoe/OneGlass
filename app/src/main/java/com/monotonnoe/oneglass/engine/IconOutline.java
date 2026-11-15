@@ -39,6 +39,14 @@ final class IconOutline {
         this.corner = corner;
     }
 
+    /** OneGlass: the iOS 27 icon squircle covering the whole icon (Figma: 15.5 / 60pt). */
+    private static final IconOutline IOS = new IconOutline(0f, 0f, 1f, 1f, IosLook.CORNER);
+
+    static IconOutline ios() {
+        last = IOS; // folders take the app icons' shape
+        return IOS;
+    }
+
     /** The outline of {@code icon}, or null if it has no measurable one. Main thread only. */
     static IconOutline of(Drawable icon) {
         try {

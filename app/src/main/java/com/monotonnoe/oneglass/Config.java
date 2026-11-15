@@ -24,7 +24,10 @@ public final class Config {
     public static final String FOLDERS = "folders";
     public static final String ICON_RIM = "icon_rim";
     public static final String DIAG = "diag";
-    public static final String IOS_GRID = "ios_grid_v2";
+    public static final String IOS_GRID = "ios_grid_v3";
+    public static final String IOS_ICONS = "ios_icons";
+    public static final String IOS_ICON_SIZE = "ios_icon_size";
+    public static final String IOS_LABELS = "ios_labels";
     public static final String FOLDER_PANEL = "folder_panel";
     public static final String LIGHT_TILT = "light_tilt";
     public static final String HIDE_BADGES = "hide_badges";
@@ -66,7 +69,13 @@ public final class Config {
     public boolean iconRim = true;
     public boolean diag = false;
     /** Re-lay the home grid, widgets and dock on the iOS 27 grid from the Figma kit. */
-    public boolean iosGrid = false;
+    public boolean iosGrid = true;
+    /** iOS 27 icon shape: continuous-corner squircle, Figma 15.5 / 60pt. */
+    public boolean iosIcons = true;
+    /** iOS 27 icon size: 60pt. */
+    public boolean iosIconSize = true;
+    /** iOS labels: 12pt medium, white, soft shadow. */
+    public boolean iosLabels = true;
     /** Glass behind the opened folder panel. */
     public boolean folderPanel = true;
     /** The glass highlight follows the phone tilt (iOS 26/27). */
@@ -120,6 +129,9 @@ public final class Config {
         c.iconRim = p.getBoolean(ICON_RIM, d.iconRim);
         c.diag = p.getBoolean(DIAG, d.diag);
         c.iosGrid = p.getBoolean(IOS_GRID, d.iosGrid);
+        c.iosIcons = p.getBoolean(IOS_ICONS, d.iosIcons);
+        c.iosIconSize = p.getBoolean(IOS_ICON_SIZE, d.iosIconSize);
+        c.iosLabels = p.getBoolean(IOS_LABELS, d.iosLabels);
         c.folderPanel = p.getBoolean(FOLDER_PANEL, d.folderPanel);
         c.lightTilt = p.getBoolean(LIGHT_TILT, d.lightTilt);
         c.hideBadges = p.getBoolean(HIDE_BADGES, d.hideBadges);
@@ -153,6 +165,9 @@ public final class Config {
                 .putBoolean(ICON_RIM, iconRim)
                 .putBoolean(DIAG, diag)
                 .putBoolean(IOS_GRID, iosGrid)
+                .putBoolean(IOS_ICONS, iosIcons)
+                .putBoolean(IOS_ICON_SIZE, iosIconSize)
+                .putBoolean(IOS_LABELS, iosLabels)
                 .putBoolean(FOLDER_PANEL, folderPanel)
                 .putBoolean(LIGHT_TILT, lightTilt)
                 .putBoolean(HIDE_BADGES, hideBadges)

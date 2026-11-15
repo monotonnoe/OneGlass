@@ -181,9 +181,7 @@ final class SearchGlass extends Drawable implements Drawable.Callback {
         boolean act = v != null && active(v);
         drawnActive = act;
         float corner = pillCorner(getBounds());
-        // OneGlass: the One UI apps screen (its search bar too) stays stock
-        if (v == null || corner < 0f || !enabled(canvas) || act
-                || com.monotonnoe.oneglass.glass.HomeScope.inAppsScreen(v)) {
+        if (v == null || corner < 0f || !enabled(canvas) || act) {
             showing = false;
             original.draw(canvas);
             return;

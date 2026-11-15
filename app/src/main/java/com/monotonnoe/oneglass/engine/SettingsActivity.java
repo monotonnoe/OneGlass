@@ -440,7 +440,7 @@ public final class SettingsActivity extends Activity {
         toggle(s.card, R.string.glass_folders, 0, Settings.GLASS_FOLDERS);
         toggle(s.card, R.string.glass_widgets, 0, Settings.GLASS_WIDGETS);
         toggle(s.card, R.string.glass_search, R.string.glass_search_sub, Settings.GLASS_SEARCH);
-        // OneGlass: the One UI apps screen stays stock (no glass toggle for it)
+        toggle(s.card, R.string.glass_drawer, 0, Settings.GLASS_DRAWER);
 
         s = rows.section(c, getString(R.string.group_folder), null);
         toggle(s.card, R.string.glass_folder_panel, 0, Settings.GLASS_FOLDER_PANEL);
@@ -632,7 +632,12 @@ public final class SettingsActivity extends Activity {
         slider(s.card, R.string.glass_saturation, Settings.GLASS_SATURATION, PERCENT);
         toggle(s.card, R.string.lens_depth, R.string.lens_depth_sub, Settings.LENS_DEPTH);
 
-        // OneGlass: no apps-screen section, the One UI apps screen stays stock.
+        s = rows.section(c, getString(R.string.group_drawer), null);
+        slider(s.card, R.string.drawer_blur, Settings.DRAWER_BLUR, PERCENT);
+        slider(s.card, R.string.drawer_lens_height, Settings.DRAWER_LENS_HEIGHT, PERCENT);
+        slider(s.card, R.string.drawer_lens_amount, Settings.DRAWER_LENS_AMOUNT, PERCENT);
+        slider(s.card, R.string.drawer_saturation, Settings.DRAWER_SATURATION, PERCENT);
+        slider(s.card, R.string.drawer_tint, Settings.DRAWER_TINT, PERCENT_OR_HOME);
 
         s = rows.section(c, getString(R.string.group_folder), null);
         slider(s.card, R.string.folder_blur, Settings.FOLDER_BLUR, PERCENT);

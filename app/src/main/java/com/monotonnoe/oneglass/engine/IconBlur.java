@@ -902,6 +902,7 @@ final class IconBlur {
         final Drawable inner;
         private IconOutline outline;
         private boolean measured;
+        private boolean iosMeasured;
         /** A glass icon pack's glyph without the pack's glass, at the size it was tried. */
         private Peel peeled;
         /** A peel is running or has run for the current size: no second one until it is dropped. */
@@ -922,9 +923,18 @@ final class IconBlur {
         public void draw(Canvas canvas) {
             Rect b = inner.getBounds();
             if (b.isEmpty()) return;
-            if (!measured) {
+            boolean ios = IosLook.shape();
+            if (!measured || iosMeasured != ios) {
                 measured = true;
-                outline = IconOutline.of(inner);
+                iosMeasured = ios;
+                outline = ios ? IconOutline.ios() : IconOutline.of(inner);
+            }
+            // OneGlass: iOS 27 icon size (60pt), around the icon's centre
+            float scale = ios ? IosLook.iconScale(holder.viewRef.get(), b.width()) : 1f;
+            int saved = -1;
+            if (scale != 1f) {
+                saved = canvas.save();
+                canvas.scale(scale, scale, b.exactCenterX(), b.exactCenterY());
             }
             // The pack's glass comes off only where this glass went on: the Home screen. In
             // folders without glass, the Edge panel, Recents and anywhere else the icon stays
@@ -932,6 +942,19 @@ final class IconBlur {
             boolean glassed = holder.drawBlur(canvas, b, outline);
             // An open folder's panel gets its glass whether or not its icons do.
             if (!glassed) holder.findFolderPanel();
+            if (ios && glassed) {
+                // OneGlass: the icon cut to the iOS squircle (continuous corners)
+                int clip = canvas.save();
+                canvas.clipPath(IosLook.iconPath(b));
+                drawIcon(canvas, b, glassed);
+                canvas.restoreToCount(clip);
+            } else {
+                drawIcon(canvas, b, glassed);
+            }
+            if (saved >= 0) canvas.restoreToCount(saved);
+        }
+
+        private void drawIcon(Canvas canvas, Rect b, boolean glassed) {
             if (Config.packPeel && glassed) {
                 boolean resized = peelW != b.width() || peelH != b.height();
                 // One peel per size, off the main thread. An icon that keeps invalidating (a

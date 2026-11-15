@@ -31,10 +31,13 @@ public final class LauncherHooks {
 
     static final String HOTSEAT = "com.honeyspace.ui.honeypots.hotseat.presentation.HotseatCellLayout";
     static final String PAGE = "com.honeyspace.ui.honeypots.workspace.presentation.WorkspaceCellLayout";
+    static final String ICON = "com.honeyspace.ui.common.iconview.IconViewImpl";
 
     private static final int K_NONE = 0;
     private static final int K_HOTSEAT = 1;
     private static final int K_PAGE = 2;
+    private static final int K_ICON = 3;
+    private static final int K_INDICATOR = 4;
 
     private static final Map<Class<?>, Integer> KINDS = new HashMap<>();
     private static final Set<View> DONE = Collections.newSetFromMap(new WeakHashMap<>());
@@ -59,6 +62,7 @@ public final class LauncherHooks {
                 }
             }
         });
+        IosLabels.install(XposedHelpers.findClassIfExists(ICON, cl));
         Log.i("OneGlass dock / grid hooks installed; hotseat class "
                 + (XposedHelpers.findClassIfExists(HOTSEAT, cl) != null ? "found" : "MISSING"));
     }
@@ -103,18 +107,40 @@ public final class LauncherHooks {
             final View root = v;
             MAIN.postDelayed(() -> Diagnostics.dump(root), 4000);
         }
+        if (!com.monotonnoe.oneglass.engine.SearchPillGlass.suppressed
+                && v.getClass().getName().startsWith("dev.flexy.searchpill.")) {
+            // the SearchPill module already shows a search pill: no second one
+            com.monotonnoe.oneglass.engine.SearchPillGlass.suppressed = true;
+            Log.i("SearchPill module detected: OneGlass' own search pill is off");
+        }
         int kind = kindOf(v.getClass());
-        if (kind == K_NONE || !DONE.add(v)) {
+        if (kind == K_NONE) {
             return;
         }
-        if (kind == K_HOTSEAT) {
-            IosGrid.hookLayout(v.getClass(), true);
-            DockGlass.attach(v);
-        } else {
-            IosGrid.hookLayout(v.getClass(), false);
+        if (kind == K_ICON) {
+            IosLabels.apply(v); // every attach: icons are recycled between pages
+            return;
         }
-        if (Config.current.iosGrid) {
-            v.requestLayout();
+        if (!DONE.add(v)) {
+            return;
+        }
+        switch (kind) {
+            case K_HOTSEAT:
+                IosGrid.hookLayout(v.getClass(), true);
+                DockGlass.attach(v);
+                if (Config.current.iosGrid) v.requestLayout();
+                break;
+            case K_PAGE:
+                IosGrid.hookLayout(v.getClass(), false);
+                if (Config.current.iosGrid) v.requestLayout();
+                break;
+            case K_INDICATOR:
+                if (!com.monotonnoe.oneglass.glass.HomeScope.inAppsScreen(v)) {
+                    com.monotonnoe.oneglass.engine.SearchPillGlass.attach(v);
+                }
+                break;
+            default:
+                break;
         }
     }
 
@@ -130,6 +156,10 @@ public final class LauncherHooks {
                 kind = K_HOTSEAT;
             } else if (n.equals(PAGE) || n.endsWith(".WorkspaceCellLayout")) {
                 kind = K_PAGE;
+            } else if (n.equals(ICON)) {
+                kind = K_ICON;
+            } else if (n.startsWith("com.honeyspace.") && c.getSimpleName().equals("PageIndicatorView")) {
+                kind = K_INDICATOR;
             }
             if (kind != K_NONE) {
                 break;
