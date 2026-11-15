@@ -51,6 +51,8 @@ public final class GlassDrawable extends Drawable {
                 return c.widgets;
             case GlassSpec.ROLE_FOLDER:
                 return c.folders;
+            case GlassSpec.ROLE_FOLDER_PANEL:
+                return c.folderPanel;
             default:
                 return false;
         }
@@ -92,7 +94,8 @@ public final class GlassDrawable extends Drawable {
         if (a <= 0.003f) {
             return;
         }
-        GlassSpec spec = GlassSpec.resolve(role, cfg, host.getResources(), rect);
+        GlassSpec spec = GlassSpec.resolve(role, cfg, Units.pt(host),
+                GlassSpec.isDark(cfg, host.getResources()), rect);
         Shader content = Backdrop.shaderFor(host);
         GlassShader.draw(canvas, rect, spec, content, a);
     }

@@ -24,6 +24,8 @@ public final class Config {
     public static final String FOLDERS = "folders";
     public static final String ICON_RIM = "icon_rim";
     public static final String DIAG = "diag";
+    public static final String IOS_GRID = "ios_grid";
+    public static final String FOLDER_PANEL = "folder_panel";
     // material
     public static final String BLUR = "blur";
     public static final String REFRACTION = "refraction";
@@ -60,6 +62,10 @@ public final class Config {
     public boolean folders = true;
     public boolean iconRim = true;
     public boolean diag = false;
+    /** Re-lay the home grid, widgets and dock on the iOS 27 grid from the Figma kit. */
+    public boolean iosGrid = true;
+    /** Glass behind the opened folder panel. */
+    public boolean folderPanel = true;
 
     /** iOS style of the glass: Default, Clear or Tinted (Figma Playground). */
     public int style = STYLE_CLEAR;
@@ -81,8 +87,8 @@ public final class Config {
 
     /** Figma: Dock 357x99, corner radius 35. */
     public int dockRadius = 35;
-    public int dockPadH = 10;
-    public int dockPadV = 10;
+    public int dockPadH = 0;
+    public int dockPadV = 0;
     /** Figma: widget 158x158, corner radius 27. */
     public int widgetRadius = 27;
     /** 0 = auto. */
@@ -104,6 +110,8 @@ public final class Config {
         c.folders = p.getBoolean(FOLDERS, d.folders);
         c.iconRim = p.getBoolean(ICON_RIM, d.iconRim);
         c.diag = p.getBoolean(DIAG, d.diag);
+        c.iosGrid = p.getBoolean(IOS_GRID, d.iosGrid);
+        c.folderPanel = p.getBoolean(FOLDER_PANEL, d.folderPanel);
         c.blur = p.getInt(BLUR, d.blur);
         c.refraction = p.getInt(REFRACTION, d.refraction);
         c.refractionHeight = p.getInt(REFRACTION_HEIGHT, d.refractionHeight);
@@ -132,6 +140,8 @@ public final class Config {
                 .putBoolean(FOLDERS, folders)
                 .putBoolean(ICON_RIM, iconRim)
                 .putBoolean(DIAG, diag)
+                .putBoolean(IOS_GRID, iosGrid)
+                .putBoolean(FOLDER_PANEL, folderPanel)
                 .putInt(BLUR, blur)
                 .putInt(REFRACTION, refraction)
                 .putInt(REFRACTION_HEIGHT, refractionHeight)

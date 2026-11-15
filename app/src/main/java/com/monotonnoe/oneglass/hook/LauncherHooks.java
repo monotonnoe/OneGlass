@@ -27,6 +27,7 @@ import com.monotonnoe.oneglass.glass.GlassSpec;
 import com.monotonnoe.oneglass.glass.GlassTracker;
 import com.monotonnoe.oneglass.glass.IconRimDrawable;
 import com.monotonnoe.oneglass.glass.Log;
+import com.monotonnoe.oneglass.glass.Units;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,6 +52,7 @@ public final class LauncherHooks {
     static final String HOTSEAT = "com.honeyspace.ui.honeypots.hotseat.presentation.HotseatCellLayout";
     static final String ICON = "com.honeyspace.ui.common.iconview.IconViewImpl";
     static final String FOLDER_ICON = "com.honeyspace.ui.common.iconview.FolderIconViewImpl";
+    static final String PAGE = "com.honeyspace.ui.honeypots.workspace.presentation.WorkspaceCellLayout";
 
     private static final int K_NONE = 0;
     private static final int K_HOTSEAT = 1;
@@ -58,6 +60,8 @@ public final class LauncherHooks {
     private static final int K_FOLDER_ICON = 3;
     private static final int K_WIDGET = 4;
     private static final int K_INDICATOR = 5;
+    private static final int K_PAGE = 6;
+    private static final int K_FOLDER_PANEL = 7;
 
     private static final Map<Class<?>, Integer> KINDS = new HashMap<>();
     private static final Set<View> DONE = Collections.newSetFromMap(new WeakHashMap<>());
@@ -151,7 +155,16 @@ public final class LauncherHooks {
         }
         switch (kind) {
             case K_HOTSEAT:
+                IosGrid.hookLayout(v.getClass(), true);
                 applyDock(v);
+                v.requestLayout();
+                break;
+            case K_PAGE:
+                IosGrid.hookLayout(v.getClass(), false);
+                v.requestLayout();
+                break;
+            case K_FOLDER_PANEL:
+                applyBackground(v, new GlassDrawable(GlassSpec.ROLE_FOLDER_PANEL, Shapes.PANEL));
                 break;
             case K_WIDGET:
                 applyWidget(v);
@@ -181,6 +194,8 @@ public final class LauncherHooks {
             String n = c.getName();
             if (n.equals(HOTSEAT) || n.endsWith(".HotseatCellLayout")) {
                 kind = K_HOTSEAT;
+            } else if (n.equals(PAGE) || n.endsWith(".WorkspaceCellLayout")) {
+                kind = K_PAGE;
             } else if (n.equals(FOLDER_ICON) || n.endsWith(".FolderIconViewImpl")) {
                 kind = K_FOLDER_ICON;
             } else if (n.equals(ICON) || n.endsWith(".IconViewImpl")) {
@@ -189,6 +204,11 @@ public final class LauncherHooks {
                 kind = K_WIDGET;
             } else if (n.startsWith("com.honeyspace.") && c.getSimpleName().contains("PageIndicator")) {
                 kind = K_INDICATOR;
+            } else if (n.startsWith("com.honeyspace.") && c.getSimpleName().contains("Folder")
+                    && !c.getSimpleName().contains("Icon") && ViewGroup.class.isAssignableFrom(c)
+                    && (c.getSimpleName().contains("Container") || c.getSimpleName().contains("Panel")
+                    || c.getSimpleName().endsWith("FolderView"))) {
+                kind = K_FOLDER_PANEL;
             }
             if (kind != K_NONE) {
                 break;
@@ -245,7 +265,7 @@ public final class LauncherHooks {
                     }
                     return;
                 }
-                float dp = view.getResources().getDisplayMetrics().density;
+                float dp = Units.pt(view);
                 r.set(0, 0, view.getWidth(), view.getHeight());
                 ContinuousPath.build(path, r, c.widgetRadius * dp, ContinuousPath.IOS_SMOOTHING);
                 outline.setPath(path);

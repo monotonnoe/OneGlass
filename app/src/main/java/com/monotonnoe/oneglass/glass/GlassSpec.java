@@ -25,6 +25,9 @@ public final class GlassSpec {
     public static final int ROLE_FOLDER = 4;
     /** GLASS layer over an app icon (Figma "Light/Dark-Default App Icon"): refracts the icon itself. */
     public static final int ROLE_ICON = 5;
+    /** Opened folder panel: tile material, iOS folder corner radius. */
+    public static final int ROLE_FOLDER_PANEL = 6;
+    public static final float FOLDER_PANEL_RADIUS = 38f;
 
     /** Figma: app icon 60pt with corner radius 15.5pt. */
     public static final float ICON_RADIUS_RATIO = 15.5f / 60f;
@@ -126,7 +129,7 @@ public final class GlassSpec {
     public static GlassSpec resolve(int role, Config cfg, float dp, boolean dark, RectF rect) {
         GlassSpec s = SHARED;
         float minSide = Math.min(rect.width(), rect.height());
-        boolean tile = role == ROLE_WIDGET || role == ROLE_FOLDER;
+        boolean tile = role == ROLE_WIDGET || role == ROLE_FOLDER || role == ROLE_FOLDER_PANEL;
 
         switch (role) {
             case ROLE_PILL:
@@ -134,6 +137,9 @@ public final class GlassSpec {
                 break;
             case ROLE_WIDGET:
                 s.radius = cfg.widgetRadius * dp;
+                break;
+            case ROLE_FOLDER_PANEL:
+                s.radius = FOLDER_PANEL_RADIUS * dp;
                 break;
             case ROLE_FOLDER:
             case ROLE_ICON:

@@ -64,8 +64,7 @@ public final class IconRimDrawable extends Drawable {
             matrix.preScale(rect.width() / capture.getWidth(), rect.height() / capture.getHeight());
             captureShader.setLocalMatrix(matrix);
             boolean dark = GlassSpec.isDark(cfg, v.getResources());
-            GlassSpec spec = GlassSpec.resolve(GlassSpec.ROLE_ICON, cfg,
-                    v.getResources().getDisplayMetrics().density, dark, rect);
+            GlassSpec spec = GlassSpec.resolve(GlassSpec.ROLE_ICON, cfg, Units.pt(v), dark, rect);
             GlassShader.draw(canvas, rect, spec, captureShader, cfg.iconRimAlpha / 100f);
             return;
         }
@@ -105,7 +104,7 @@ public final class IconRimDrawable extends Drawable {
     }
 
     private void drawStroke(Canvas canvas, View v, Config cfg) {
-        float dp = v.getResources().getDisplayMetrics().density;
+        float dp = Units.pt(v);
         float stroke = Math.max(1f, GlassSpec.LIGHT_WIDTH * 2f * dp);
         RectF r = new RectF(rect);
         r.inset(stroke / 2f, stroke / 2f);

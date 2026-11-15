@@ -103,6 +103,11 @@ public final class SettingsActivity extends Activity {
         list.addView(preview, plp);
 
         section("Где стекло");
+        toggle("Сетка iOS 27", "Иконки, виджеты и док по сетке макета: иконки 60 pt, шаг 90×97.8, виджеты 158/338. В One UI выберите сетку 4×6",
+                new BoolProp() {
+                    public boolean get(Config c) { return c.iosGrid; }
+                    public void set(Config c, boolean v) { c.iosGrid = v; }
+                });
         toggle("Док", "Стеклянная подложка под иконками дока (Figma: 357×99, радиус 35)",
                 new BoolProp() {
                     public boolean get(Config c) { return c.dock; }
@@ -127,6 +132,11 @@ public final class SettingsActivity extends Activity {
                 new BoolProp() {
                     public boolean get(Config c) { return c.folders; }
                     public void set(Config c, boolean v) { c.folders = v; }
+                });
+        toggle("Открытая папка", "Стеклянная панель открытой папки",
+                new BoolProp() {
+                    public boolean get(Config c) { return c.folderPanel; }
+                    public void set(Config c, boolean v) { c.folderPanel = v; }
                 });
         toggle("Стекло на иконках", "Слой GLASS из макета поверх иконок: преломляющая кромка и освещение",
                 new BoolProp() {
@@ -170,11 +180,11 @@ public final class SettingsActivity extends Activity {
             public int get(Config c) { return c.dockRadius; }
             public void set(Config c, int v) { c.dockRadius = v; }
         });
-        slider("Отступ дока по бокам", -20, 40, "dp", new IntProp() {
+        slider("Док шире макета на", -20, 40, "pt", new IntProp() {
             public int get(Config c) { return c.dockPadH; }
             public void set(Config c, int v) { c.dockPadH = v; }
         });
-        slider("Отступ дока сверху/снизу", -20, 40, "dp", new IntProp() {
+        slider("Док выше макета на", -20, 40, "pt", new IntProp() {
             public int get(Config c) { return c.dockPadV; }
             public void set(Config c, int v) { c.dockPadV = v; }
         });
